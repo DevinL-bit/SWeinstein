@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>史丹．溫斯坦 (Stan Weinstein) 旗艦操盤系統 v4.2</title>
+    <title>史丹．溫斯坦 (Stan Weinstein) 旗艦操盤系統 v4.3</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Plotly.js -->
@@ -40,7 +40,7 @@
                 </div>
                 <div class="flex flex-col">
                     <span>史丹．溫斯坦 <span class="text-blue-400">旗艦操盤系統</span></span>
-                    <span class="text-[10px] text-slate-400 font-normal">v4.2 Pro (Full Features Restored)</span>
+                    <span class="text-[10px] text-slate-400 font-normal">v4.3 Pro (Radar Fixed + RS Lines Restored)</span>
                 </div>
             </h1>
             <div class="hidden md:flex gap-3 text-xs">
@@ -69,7 +69,7 @@
 
                 <!-- Index Input -->
                 <div class="lg:col-span-3">
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">對比大盤 (Mansfield RS)</label>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">對比大盤 (Relative Strength)</label>
                     <div class="relative">
                         <select id="indexInput" class="w-full pl-4 pr-10 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none appearance-none bg-white font-medium text-slate-700">
                             <option value="^TWII">台灣加權指數 (TWII)</option>
@@ -83,7 +83,7 @@
 
                 <!-- MA & Timeframe Settings -->
                 <div class="lg:col-span-4 flex gap-2">
-                    <!-- MA Type Selector (NEW) -->
+                    <!-- MA Type Selector -->
                     <div class="w-24">
                         <label class="block text-xs font-bold text-slate-500 uppercase mb-2">均線算法</label>
                         <select id="maType" class="w-full h-[50px] px-2 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none bg-white font-bold text-slate-600 text-xs" onchange="if(!document.getElementById('analyzeBtn').disabled && currentTicker) runAnalysis()">
@@ -207,11 +207,14 @@
             <!-- Right Column: Analysis (1/4 width) -->
             <div class="space-y-6">
                 
-                <!-- Radar Chart Card -->
-                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
-                    <h3 class="text-sm font-bold text-slate-500 uppercase mb-2 text-center">多空體質雷達</h3>
-                    <div id="radarChart" class="w-full h-[250px]"></div>
-                    <div class="text-center mt-1">
+                <!-- Radar Chart Card (Layout Fixed) -->
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col items-center justify-center min-h-[320px]">
+                    <h3 class="text-sm font-bold text-slate-500 uppercase mb-2 text-center w-full">多空體質雷達</h3>
+                    <!-- Radar Container with strict dimensions -->
+                    <div class="w-full flex-grow flex items-center justify-center relative" style="height: 240px;">
+                        <div id="radarChart" class="w-full h-full"></div>
+                    </div>
+                    <div class="text-center mt-2 w-full pt-2 border-t border-slate-100">
                         <span id="totalScore" class="text-2xl font-black text-slate-800">--</span>
                         <span class="text-xs text-slate-400 block">多方總分 (Max 100)</span>
                     </div>
@@ -224,7 +227,7 @@
                     <p class="text-sm text-slate-600 leading-relaxed" id="stageDesc">--</p>
                 </div>
 
-                <!-- Price Action Card (RESTORED) -->
+                <!-- Price Action Card -->
                 <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                     <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2 border-b pb-3">
                         <i class="fa-solid fa-magnifying-glass-chart text-purple-600"></i>
@@ -246,7 +249,7 @@
                     </div>
                 </div>
 
-                <!-- Market Stats (RESTORED MISSING ITEMS) -->
+                <!-- Market Stats -->
                 <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200">
                     <h3 class="font-bold text-slate-600 mb-3 text-sm uppercase">關鍵數據</h3>
                     <div class="space-y-3 text-sm">
@@ -346,7 +349,7 @@
         async function runAnalysis() {
             const ticker = document.getElementById('tickerInput').value.trim().toUpperCase();
             const maTypeSelect = document.getElementById('maType').value;
-            config.maType = maTypeSelect; // Update config from UI
+            config.maType = maTypeSelect; 
             
             if(!ticker) return;
             currentTicker = ticker;
@@ -356,31 +359,23 @@
             document.getElementById('analyzeBtn').disabled = true;
 
             try {
-                // 1. Determine Market
                 const isTW = /^[0-9]{3,4}$/.test(ticker);
                 config.marketType = isTW ? 'TW' : 'US';
 
-                // 2. Fetch Data
                 const stockData = await fetchData(ticker, config.marketType);
                 if(!stockData || stockData.length < 60) throw new Error("資料不足");
 
-                // 3. Fetch Index (Allow fail)
                 const indexTicker = document.getElementById('indexInput').value;
                 let indexData = [];
                 try { indexData = await fetchYahooData(indexTicker, true); } catch(e){ console.warn("Index fail"); }
 
-                // 4. Resample
                 const rStock = resampleData(stockData, config.timeframe);
                 const rIndex = resampleData(indexData, config.timeframe);
 
-                // 5. Indicators
                 const analyzed = calcIndicators(rStock, rIndex);
-                
-                // 6. Support/Resistance & Radar
                 const srLevels = calcSupportResistance(analyzed);
                 const radarScore = calcRadarScore(analyzed);
 
-                // 7. Render All
                 renderMainChart(ticker, analyzed, srLevels);
                 renderRadar(radarScore);
                 renderSidebar(analyzed, srLevels); 
@@ -546,7 +541,7 @@
             return Object.values(map).sort((a,b)=>a.date-b.date);
         }
 
-        // --- Indicator Calculation v4 ---
+        // --- Indicator Calculation ---
         function calcIndicators(data, idxData) {
             const period = config.maLength;
             const rsPeriod = 52;
@@ -576,7 +571,7 @@
                     data[i].volMa = vs/5;
                 }
 
-                // RS
+                // RS (Ratio)
                 const dKey = data[i].date.toISOString().split('T')[0];
                 let iClose = iMap[dKey]; 
                 if(!iClose && idxData.length) {
@@ -586,7 +581,7 @@
                 data[i].rsRatio = iClose ? data[i].close/iClose : null;
             }
 
-            // Mansfield
+            // RS MA & Mansfield
             const rsRatios = data.map(d=>d.rsRatio);
             for(let i=0; i<data.length; i++) {
                 if(i >= rsPeriod-1 && data[i].rsRatio) {
@@ -595,8 +590,12 @@
                         if(rsRatios[i-j]) { s+=rsRatios[i-j]; c++; }
                     }
                     const smaRS = c>0 ? s/c : null;
+                    data[i].rsMa = smaRS; // Save for Line Chart (Classic RS)
                     data[i].mansfieldRs = smaRS ? ((data[i].rsRatio/smaRS)-1) : null;
-                } else data[i].mansfieldRs = null;
+                } else {
+                    data[i].rsMa = null;
+                    data[i].mansfieldRs = null;
+                }
             }
             
             // 52-week High
@@ -689,10 +688,21 @@
                 x: dates, y: data.map(d=>d.volume), type: 'bar', name: 'Vol', yaxis: 'y2',
                 marker: { color: data.map(d => d.close >= d.open ? '#22c55e' : '#ef4444') }
             };
-            const rsBar = {
-                x: dates, y: data.map(d=>d.mansfieldRs), type: 'bar', name: 'Mansfield RS', yaxis: 'y3',
-                marker: { color: data.map(d => (d.mansfieldRs||0) >= 0 ? '#10b981' : '#f43f5e') }
-            };
+            
+            // Restored RS Lines (instead of Mansfield bars)
+            const traces = [candles, maLine, volBar];
+            if(data[0].rsRatio !== null) {
+                const traceRS = {
+                    x: dates, y: data.map(d=>d.rsRatio), type: 'scatter', mode: 'lines', name: 'RS 線', yaxis: 'y3',
+                    line: { color: '#0ea5e9', width: 1.5 }
+                };
+                const traceRSMa = {
+                    x: dates, y: data.map(d=>d.rsMa), type: 'scatter', mode: 'lines', name: 'RS 均線 (52)', yaxis: 'y3',
+                    line: { color: '#ec4899', width: 1, dash: 'dot' }
+                };
+                traces.push(traceRS);
+                traces.push(traceRSMa);
+            }
 
             const shapes = [];
             if(sr.resist) shapes.push({ type: 'line', x0: dates[0], x1: dates[dates.length-1], y0: sr.resist, y1: sr.resist, line: {color:'red', width:1, dash:'dash'} });
@@ -713,13 +723,13 @@
                 xaxis: { type: 'date', rangeslider: {visible:false}, anchor: 'y3' },
                 yaxis: { title: 'Price', domain: [0.45, 1] },
                 yaxis2: { title: 'Vol', domain: [0.25, 0.40] },
-                yaxis3: { title: 'RS', domain: [0, 0.20] },
+                yaxis3: { title: 'RS 強度', domain: [0, 0.20] },
                 height: 700, margin: {t:20,b:40,l:50,r:20}, showlegend: false,
                 shapes: shapes, annotations: annotations,
                 hovermode: 'x unified'
             };
 
-            Plotly.newPlot('mainChart', [candles, maLine, volBar, rsBar], layout, {responsive:true});
+            Plotly.newPlot('mainChart', traces, layout, {responsive:true});
         }
 
         function renderRadar(score) {
@@ -732,21 +742,19 @@
             }];
             const layout = {
                 polar: {
-                    radialaxis: { visible: true, range: [0, 100], tickfont: {size: 8} }
+                    radialaxis: { visible: true, range: [0, 100], tickfont: {size: 10} }
                 },
-                margin: {t:30, b:30, l:40, r:40}, // Increased margins for text visibility
-                height: 250,
+                margin: {t:30, b:30, l:50, r:50}, // Optimized margins
+                height: 240, // Match container
                 showlegend: false
             };
             Plotly.newPlot('radarChart', data, layout, {responsive:true});
         }
 
-        // Restored Sidebar rendering logic from v3.5, integrated with v4 data
         function renderSidebar(data, sr) {
             const last = data[data.length-1];
             const prev = data[data.length-2];
             
-            // 1. Stage Card Logic
             const isAbove = last.close > last.ma;
             const isRising = last.ma > prev.ma;
             const stageBox = document.getElementById('stageCard');
@@ -756,22 +764,21 @@
             if(isAbove && isRising) {
                 stageTitle.innerText = "第二階段 (多頭趨勢)";
                 stageDesc.innerText = "股價位於均線之上，且均線正在上揚。這是史丹．溫斯坦定義的「最佳買進/持有」階段。";
-                stageBox.style.borderLeftColor = "#16a34a"; // Green
+                stageBox.style.borderLeftColor = "#16a34a"; 
             } else if (!isAbove && !isRising) {
                 stageTitle.innerText = "第四階段 (空頭趨勢)";
                 stageDesc.innerText = "股價跌破均線，且均線下彎。風險極大，建議「賣出」或「放空」。";
-                stageBox.style.borderLeftColor = "#dc2626"; // Red
+                stageBox.style.borderLeftColor = "#dc2626"; 
             } else if (isAbove && !isRising) {
                 stageTitle.innerText = "第一階段 (打底區域)";
                 stageDesc.innerText = "股價雖站上均線，但均線尚未翻揚。通常是盤整期，建議觀望等待突破。";
-                stageBox.style.borderLeftColor = "#2563eb"; // Blue
+                stageBox.style.borderLeftColor = "#2563eb"; 
             } else {
                 stageTitle.innerText = "第三階段 (頭部震盪)";
                 stageDesc.innerText = "股價波動加劇，均線走平或股價跌破均線。應考慮獲利了結。";
-                stageBox.style.borderLeftColor = "#ca8a04"; // Yellow
+                stageBox.style.borderLeftColor = "#ca8a04"; 
             }
             
-            // 2. Price Action Logic (Restored)
             const paContainer = document.getElementById('priceActionContent');
             paContainer.innerHTML = '';
             let paCount = 0;
@@ -784,33 +791,25 @@
                     </div>`;
             };
 
-            // Breakout
             if(last.close > last.ma && prev.close < prev.ma && last.volume > last.volMa * 1.5) {
                 addPA("關鍵突破", "帶量站上 MA，潛在買點", "bg-green-100 text-green-700");
             }
-            // Bullish Engulfing
             if(last.close > last.open && prev.close < prev.open && last.close > prev.open && last.open < prev.close) {
                 addPA("多頭吞噬", "強勢反轉訊號", "bg-green-100 text-green-700");
             }
-            // Bearish Engulfing
             if(last.close < last.open && prev.close > prev.open && last.close < prev.open && last.open > prev.close) {
                 addPA("空頭吞噬", "頂部反轉風險", "bg-red-100 text-red-700");
             }
-            // Inside Bar
             if(last.high < prev.high && last.low > prev.low) {
                 addPA("孕線盤整", "多空不明，等待方向", "bg-yellow-100 text-yellow-700");
             }
-            // Hammer/Pin Bar (Lower shadow > 2x Body)
-            const body = Math.abs(last.close - last.open);
-            const lowerShadow = Math.min(last.close, last.open) - last.low;
-            if(lowerShadow > body * 2 && lowerShadow > (last.high - Math.max(last.close, last.open))*2) {
+            if(Math.min(last.close, last.open) - last.low > Math.abs(last.close - last.open) * 2) {
                 addPA("錘頭/探底", "下方有支撐", "bg-blue-100 text-blue-700");
             }
             if(paCount === 0) {
                 paContainer.innerHTML = '<span class="text-xs text-slate-400">目前無特殊 K 線型態</span>';
             }
 
-            // 3. Checklist Logic
             const checklist = document.getElementById('checklistContainer');
             checklist.innerHTML = '';
             
@@ -828,23 +827,15 @@
                     </div>`;
             };
 
-            // Rule 1: MA Position
             addItem(`均線位置 (Price > ${config.maLength}MA)`, isAbove, `收盤 ${last.close} / MA ${last.ma.toFixed(2)}`);
-            
-            // Rule 2: MA Direction
             const maSlope = last.ma - prev.ma;
             addItem("均線方向 (MA Rising)", isRising, `斜率 ${maSlope.toFixed(4)}`);
-            
-            // Rule 3: Volume
             const volSpike = last.volume > (last.volMa * 1.5);
             addItem("成交量確認 (Volume)", volSpike || isAbove, volSpike ? "爆量 (大於均量1.5倍)" : (isAbove ? "量能溫和" : "量縮"));
-
-            // Rule 4: Resistance
             const distHigh = ((last.high52 - last.close) / last.close) * 100;
             const isBlueSky = distHigh < 2;
             addItem("阻力最小之路 (Resistance)", isBlueSky, isBlueSky ? "突破新高" : `距52週高點 ${distHigh.toFixed(1)}%`);
 
-            // Rule 5: Mansfield RS
             const hasRS = last.mansfieldRs !== null;
             if (hasRS) {
                 const isStrongRS = last.mansfieldRs > 0;
@@ -857,13 +848,11 @@
         function updateStats(data, sr, score) {
             const last = data[data.length-1];
             
-            // Update Strategy Box Values
             document.getElementById('val-support').innerText = sr.support ? sr.support.toFixed(2) : '-';
             document.getElementById('val-resist').innerText = sr.resist ? sr.resist.toFixed(2) : '-';
             document.getElementById('val-stoploss').innerText = sr.stopLoss.toFixed(2);
             document.getElementById('totalScore').innerText = score.total;
             
-            // Update Stats Box
             document.getElementById('data-close').innerText = last.close;
             document.getElementById('label-ma').innerText = `${config.maLength}MA 位置`;
             document.getElementById('data-ma').innerText = last.ma.toFixed(2);
