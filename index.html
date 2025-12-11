@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>史丹．溫斯坦 (Stan Weinstein) 旗艦操盤系統 v4.1</title>
+    <title>史丹．溫斯坦 (Stan Weinstein) 旗艦操盤系統 v4.2</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Plotly.js -->
@@ -40,7 +40,7 @@
                 </div>
                 <div class="flex flex-col">
                     <span>史丹．溫斯坦 <span class="text-blue-400">旗艦操盤系統</span></span>
-                    <span class="text-[10px] text-slate-400 font-normal">v4.1 Hybrid (Classic UI + v4 Core)</span>
+                    <span class="text-[10px] text-slate-400 font-normal">v4.2 Pro (Full Features Restored)</span>
                 </div>
             </h1>
             <div class="hidden md:flex gap-3 text-xs">
@@ -82,7 +82,16 @@
                 </div>
 
                 <!-- MA & Timeframe Settings -->
-                <div class="lg:col-span-4 flex gap-3">
+                <div class="lg:col-span-4 flex gap-2">
+                    <!-- MA Type Selector (NEW) -->
+                    <div class="w-24">
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">均線算法</label>
+                        <select id="maType" class="w-full h-[50px] px-2 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none bg-white font-bold text-slate-600 text-xs" onchange="if(!document.getElementById('analyzeBtn').disabled && currentTicker) runAnalysis()">
+                            <option value="WMA" selected>WMA (加權)</option>
+                            <option value="SMA">SMA (簡單)</option>
+                        </select>
+                    </div>
+                    
                     <div class="flex-1">
                         <label class="block text-xs font-bold text-slate-500 uppercase mb-2">均線參數 (MA)</label>
                         <div class="flex bg-slate-100 p-1 rounded-xl h-[50px] items-center">
@@ -198,7 +207,7 @@
             <!-- Right Column: Analysis (1/4 width) -->
             <div class="space-y-6">
                 
-                <!-- Radar Chart Card (Adjusted Margins) -->
+                <!-- Radar Chart Card -->
                 <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
                     <h3 class="text-sm font-bold text-slate-500 uppercase mb-2 text-center">多空體質雷達</h3>
                     <div id="radarChart" class="w-full h-[250px]"></div>
@@ -208,14 +217,25 @@
                     </div>
                 </div>
 
-                <!-- Stage Analysis Card (Restored v3.5 Style) -->
+                <!-- Stage Analysis Card -->
                 <div class="bg-white p-6 rounded-2xl shadow-sm border-l-8 border-slate-200" id="stageCard">
                     <div class="text-xs font-bold text-slate-400 uppercase mb-1">目前階段 (Stage Analysis)</div>
                     <div class="text-2xl font-black text-slate-800 mb-2" id="stageTitle">--</div>
                     <p class="text-sm text-slate-600 leading-relaxed" id="stageDesc">--</p>
                 </div>
 
-                <!-- Checklist (Restored v3.5 Style) -->
+                <!-- Price Action Card (RESTORED) -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                    <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2 border-b pb-3">
+                        <i class="fa-solid fa-magnifying-glass-chart text-purple-600"></i>
+                        <span>K 線型態偵測 (Price Action)</span>
+                    </h3>
+                    <div id="priceActionContent" class="space-y-3">
+                        <!-- Dynamic Content -->
+                    </div>
+                </div>
+
+                <!-- Checklist -->
                 <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                     <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2 border-b pb-3">
                         <i class="fa-solid fa-list-check text-blue-600"></i>
@@ -226,7 +246,7 @@
                     </div>
                 </div>
 
-                <!-- Market Stats (Restored v3.5 Style) -->
+                <!-- Market Stats (RESTORED MISSING ITEMS) -->
                 <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200">
                     <h3 class="font-bold text-slate-600 mb-3 text-sm uppercase">關鍵數據</h3>
                     <div class="space-y-3 text-sm">
@@ -235,7 +255,7 @@
                             <span class="font-mono font-bold" id="data-close">--</span>
                         </div>
                         <div class="flex justify-between">
-                            <span class="text-slate-500">均線位置</span>
+                            <span class="text-slate-500" id="label-ma">30MA 位置</span>
                             <span class="font-mono font-bold" id="data-ma">--</span>
                         </div>
                         <div class="flex justify-between">
@@ -245,6 +265,10 @@
                         <div class="flex justify-between">
                             <span class="text-slate-500">Mansfield RS</span>
                             <span class="font-mono font-bold" id="data-rs">--</span>
+                        </div>
+                         <div class="flex justify-between">
+                            <span class="text-slate-500">距52週高點</span>
+                            <span class="font-mono font-bold" id="data-high-dist">--</span>
                         </div>
                     </div>
                 </div>
@@ -321,6 +345,9 @@
         // --- Core Analysis Logic ---
         async function runAnalysis() {
             const ticker = document.getElementById('tickerInput').value.trim().toUpperCase();
+            const maTypeSelect = document.getElementById('maType').value;
+            config.maType = maTypeSelect; // Update config from UI
+            
             if(!ticker) return;
             currentTicker = ticker;
             
@@ -356,7 +383,7 @@
                 // 7. Render All
                 renderMainChart(ticker, analyzed, srLevels);
                 renderRadar(radarScore);
-                renderSidebar(analyzed, srLevels); // Restored v3.5 Sidebar Logic
+                renderSidebar(analyzed, srLevels); 
                 updateStats(analyzed, srLevels, radarScore);
                 
                 document.getElementById('dashboard').classList.remove('hidden');
@@ -571,6 +598,15 @@
                     data[i].mansfieldRs = smaRS ? ((data[i].rsRatio/smaRS)-1) : null;
                 } else data[i].mansfieldRs = null;
             }
+            
+            // 52-week High
+            for(let i=0; i<data.length; i++) {
+                 if(i >= 52) {
+                    let max = 0;
+                    for(let j=0; j<52; j++) max = Math.max(max, data[i-j].high);
+                    data[i].high52 = max;
+                } else data[i].high52 = data[i].high;
+            }
 
             return data.filter(d => d.ma !== null);
         }
@@ -646,7 +682,7 @@
                 type: 'candlestick', name: 'Price', yaxis: 'y'
             };
             const maLine = {
-                x: dates, y: data.map(d=>d.ma), type: 'scatter', mode: 'lines', name: `${config.maLength}MA`,
+                x: dates, y: data.map(d=>d.ma), type: 'scatter', mode: 'lines', name: `${config.maLength}${config.maType}`,
                 line: { color: 'blue', width: 2 }
             };
             const volBar = {
@@ -734,8 +770,47 @@
                 stageDesc.innerText = "股價波動加劇，均線走平或股價跌破均線。應考慮獲利了結。";
                 stageBox.style.borderLeftColor = "#ca8a04"; // Yellow
             }
+            
+            // 2. Price Action Logic (Restored)
+            const paContainer = document.getElementById('priceActionContent');
+            paContainer.innerHTML = '';
+            let paCount = 0;
+            const addPA = (title, desc, colorClass) => {
+                paCount++;
+                paContainer.innerHTML += `
+                    <div class="flex items-center gap-2 text-sm">
+                        <span class="px-2 py-1 rounded text-xs font-bold ${colorClass}">${title}</span>
+                        <span class="text-slate-600">${desc}</span>
+                    </div>`;
+            };
 
-            // 2. Checklist Logic
+            // Breakout
+            if(last.close > last.ma && prev.close < prev.ma && last.volume > last.volMa * 1.5) {
+                addPA("關鍵突破", "帶量站上 MA，潛在買點", "bg-green-100 text-green-700");
+            }
+            // Bullish Engulfing
+            if(last.close > last.open && prev.close < prev.open && last.close > prev.open && last.open < prev.close) {
+                addPA("多頭吞噬", "強勢反轉訊號", "bg-green-100 text-green-700");
+            }
+            // Bearish Engulfing
+            if(last.close < last.open && prev.close > prev.open && last.close < prev.open && last.open > prev.close) {
+                addPA("空頭吞噬", "頂部反轉風險", "bg-red-100 text-red-700");
+            }
+            // Inside Bar
+            if(last.high < prev.high && last.low > prev.low) {
+                addPA("孕線盤整", "多空不明，等待方向", "bg-yellow-100 text-yellow-700");
+            }
+            // Hammer/Pin Bar (Lower shadow > 2x Body)
+            const body = Math.abs(last.close - last.open);
+            const lowerShadow = Math.min(last.close, last.open) - last.low;
+            if(lowerShadow > body * 2 && lowerShadow > (last.high - Math.max(last.close, last.open))*2) {
+                addPA("錘頭/探底", "下方有支撐", "bg-blue-100 text-blue-700");
+            }
+            if(paCount === 0) {
+                paContainer.innerHTML = '<span class="text-xs text-slate-400">目前無特殊 K 線型態</span>';
+            }
+
+            // 3. Checklist Logic
             const checklist = document.getElementById('checklistContainer');
             checklist.innerHTML = '';
             
@@ -777,11 +852,6 @@
             } else {
                  checklist.innerHTML += `<div class="p-3 bg-slate-50 rounded-lg text-xs text-slate-400">RS 資料不足，無法判斷</div>`;
             }
-            
-            // Price Action (Append to checklist or below it)
-            if(last.close > last.ma && prev.close <= prev.ma) {
-                 checklist.innerHTML += `<div class="p-2 bg-green-100 text-green-700 rounded text-xs font-bold mt-2 text-center">★ 價格黃金交叉突破</div>`;
-            }
         }
 
         function updateStats(data, sr, score) {
@@ -795,9 +865,13 @@
             
             // Update Stats Box
             document.getElementById('data-close').innerText = last.close;
+            document.getElementById('label-ma').innerText = `${config.maLength}MA 位置`;
             document.getElementById('data-ma').innerText = last.ma.toFixed(2);
             document.getElementById('data-bias').innerText = (((last.close - last.ma)/last.ma)*100).toFixed(2) + "%";
             document.getElementById('data-rs').innerText = last.mansfieldRs ? last.mansfieldRs.toFixed(2) : '-';
+            
+            const distHigh = ((last.high52 - last.close) / last.close) * 100;
+            document.getElementById('data-high-dist').innerText = last.high52 ? "-" + distHigh.toFixed(1) + "%" : "-";
         }
     </script>
 </body>
