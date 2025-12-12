@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Weinstein Pro Viewer (Complete)</title>
+  <title>Weinstein Pro (RS Selector)</title>
 
   <!-- K 線圖套件 -->
   <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
@@ -71,7 +71,7 @@
       font-size: 11px;
       color: var(--muted);
       margin-right: 4px;
-      display: none; /* 空間不足時隱藏標籤 */
+      display: none; 
     }
     @media (min-width: 1200px) { .toolbar-label { display: inline; } }
 
@@ -85,7 +85,7 @@
       outline: none;
       font-family: inherit;
     }
-    input:focus { border-color: var(--accent); }
+    input:focus, select:focus { border-color: var(--accent); }
 
     button {
       background: var(--accent);
@@ -129,7 +129,7 @@
       position: relative;
     }
 
-    /* 左側自選股 (Sidebar) */
+    /* 左側自選股 */
     .sidebar {
       width: 180px;
       background: #1f2937;
@@ -148,7 +148,7 @@
     .watch-symbol { font-weight: bold; color: #fff; font-size: 13px; }
     .watch-name { font-size: 11px; color: #9ca3af; margin-top: 2px; }
 
-    /* 圖表區 (Chart) */
+    /* 圖表區 */
     .chart-column {
       flex: 1;
       display: flex;
@@ -175,7 +175,7 @@
       height: 100%;
     }
 
-    /* 懸浮 Tooltip (跟隨滑鼠) */
+    /* 懸浮 Tooltip (回歸前版跟隨樣式) */
     .floating-tooltip {
       position: absolute;
       display: none;
@@ -198,9 +198,10 @@
     .val-up { color: var(--up); }
     .val-down { color: var(--down); }
     .val-accent { color: var(--accent); font-weight: bold; }
-    .val-warn { color: #fbbf24; }
+    .val-rs { color: #f97316; }
+    .val-rsma { color: #d1d5db; }
 
-    /* 右側分析面板 (Analysis Panel) */
+    /* 右側分析面板 */
     .panel {
       width: 360px;
       background: #1f2937;
@@ -374,9 +375,25 @@
     </div>
   </div>
 
-  <!-- 新增：MA 種類與週期 -->
+  <!-- 新增：RS 基準選擇 -->
   <div class="toolbar-item">
-    <span class="toolbar-label">種類</span>
+    <span class="toolbar-label">RS基準</span>
+    <select id="rsBenchmark" onchange="runAnalysis()">
+      <optgroup label="台灣">
+        <option value="^TWII" selected>加權指數</option>
+        <option value="^TWO">櫃買指數</option>
+      </optgroup>
+      <optgroup label="美國">
+        <option value="^GSPC">標普 500</option>
+        <option value="^DJI">道瓊工業</option>
+        <option value="^IXIC">那斯達克</option>
+        <option value="^SOX">費半</option>
+      </optgroup>
+    </select>
+  </div>
+
+  <div class="toolbar-item">
+    <span class="toolbar-label">均線</span>
     <div class="segmented" id="maTypeButtons">
       <button data-type="SMA" class="active">SMA</button>
       <button data-type="WMA">WMA</button>
@@ -438,7 +455,6 @@
           <div id="scoreText" class="score-text">尚未分析</div>
         </div>
       </div>
-      <!-- 補回詳細分數 -->
       <div class="mini-metrics">
         <div class="mm-item"><span class="mm-label">趨勢 Trend</span><span id="scoreTrend" class="mm-val">-</span></div>
         <div class="mm-item"><span class="mm-label">動能 Mom.</span><span id="scoreMom" class="mm-val">-</span></div>
@@ -501,12 +517,8 @@
 </div>
 
 <script>
-  // ============================================
-  // 1. 全域變數
-  // ============================================
   let mainChart = null;
   let rsChart = null;
-  
   let candleSeries = null;
   let maSeries = null;
   let volumeSeries = null;
@@ -517,8 +529,8 @@
   let cacheRSMA = new Map();
 
   let currentInterval = "1wk";
-  let currentMaType = "SMA"; // 新增
-  let currentMaLen = 30;     // 新增
+  let currentMaType = "SMA"; 
+  let currentMaLen = 30;     
   let isMock = false;
 
   const PROXY_LIST = [
@@ -527,9 +539,6 @@
     { url: "https://thingproxy.freeboard.io/fetch/", type: "direct" }
   ];
 
-  // ============================================
-  // 2. 初始化圖表
-  // ============================================
   function initCharts() {
     const mainContainer = document.getElementById("chart-main");
     const rsContainer = document.getElementById("chart-rs");
@@ -590,9 +599,7 @@
     rsChart.subscribeCrosshairMove(param => updateTooltip(param, 'rs'));
   }
 
-  // ============================================
-  // 3. Tooltip
-  // ============================================
+  // 游標跟隨 Tooltip
   function updateTooltip(param, source) {
     const tooltip = document.getElementById("tooltip");
     const container = document.querySelector(".chart-column"); 
@@ -632,16 +639,16 @@
     }
 
     if (maData) {
-      html += `<div class="tt-row"><span class="tt-lbl">${currentMaType}${currentMaLen}</span><span class="val-accent">${maData.value.toFixed(2)}</span></div>`;
+      html += `<div class="tt-row"><span class="tt-lbl">MA${currentMaLen}</span><span class="val-accent">${maData.value.toFixed(2)}</span></div>`;
     }
 
     if (rsVal !== undefined) {
       html += `<div class="tt-row" style="border-top:1px dashed #4b5563; margin-top:4px; padding-top:4px;">
-                 <span class="tt-lbl">RS</span><span style="color:#f97316">${rsVal.toFixed(3)}</span>
+                 <span class="tt-lbl">RS</span><span class="val-rs">${rsVal.toFixed(3)}</span>
                </div>`;
     }
     if (rsMaVal !== undefined) {
-      html += `<div class="tt-row"><span class="tt-lbl">RS MA</span><span style="color:#d1d5db">${rsMaVal.toFixed(3)}</span></div>`;
+      html += `<div class="tt-row"><span class="tt-lbl">RS MA</span><span class="val-rsma">${rsMaVal.toFixed(3)}</span></div>`;
     }
 
     tooltip.innerHTML = html;
@@ -655,7 +662,7 @@
     }
 
     const ttWidth = 180;
-    const ttHeight = 240;
+    const ttHeight = 220;
     const containerWidth = container.clientWidth;
     const containerHeight = container.clientHeight;
 
@@ -666,9 +673,6 @@
     tooltip.style.top = top + "px";
   }
 
-  // ============================================
-  // 4. 資料獲取與清洗
-  // ============================================
   function sanitizeLineData(data) {
     return (data || []).filter(d => 
       d && typeof d.time === 'number' && Number.isFinite(d.time) && 
@@ -731,9 +735,6 @@
     return data;
   }
 
-  // ============================================
-  // 5. 計算指標 (SMA/WMA)
-  // ============================================
   function calcSMA(data, period) {
     const res = [];
     for (let i=0; i<data.length; i++) {
@@ -787,43 +788,26 @@
     return { rs: norm, mansfield };
   }
 
-  // ============================================
-  // 6. 細部評分邏輯 (Momentum Score)
-  // ============================================
   function calcScoreDetails(r) {
     let trend = 0, momentum = 0, volume = 0, rs = 0;
-
-    // 1. 趨勢 (35分)
-    // Stage 2: +25
     if (r.stage === 2) trend += 25;
-    // Stage 4: -20
     else if (r.stage === 4) trend -= 20;
-    // Price > MA: +10
     if (r.priceAboveMA) trend += 10;
 
-    // 2. 動能 (20分)
-    // MA 向上: +20
     if (r.maUp) momentum += 20;
     else momentum -= 5;
 
-    // 3. 量能 (20分)
-    // 突破放量: +15
     if (r.isVol) volume += 15;
     
-    // 4. RS (25分)
-    // 強於大盤: +25
     if (r.rsStrong) rs += 25;
     else if (r.benchmarkAvailable) rs -= 15;
 
-    let total = 40 + trend + momentum + volume + rs; // 基礎分 40
+    let total = 40 + trend + momentum + volume + rs; 
     total = Math.max(0, Math.min(100, total));
 
     return { total, trend, momentum, volume, rs };
   }
 
-  // ============================================
-  // 7. 主程式
-  // ============================================
   async function runAnalysis() {
     const input = document.getElementById("symbolInput");
     if(!input) return;
@@ -837,7 +821,6 @@
     isMock = false;
 
     try {
-      // 1. 下載資料
       let stockData;
       try {
         stockData = await fetchYahooData(symbol, currentInterval);
@@ -847,16 +830,18 @@
         isMock = true;
       }
 
+      // 取得使用者選定的 RS 基準
+      const rsBenchSymbol = document.getElementById("rsBenchmark").value;
       let benchData = null;
-      if (!isMock) {
-        const isTW = symbol.endsWith(".TW") || symbol === "^TWII";
-        const benchSym = isTW ? "^TWII" : "^GSPC";
-        if (symbol !== benchSym) {
-           try { benchData = await fetchYahooData(benchSym, currentInterval); } catch(e){}
-        }
+      
+      if (!isMock && rsBenchSymbol) {
+         try { 
+           benchData = await fetchYahooData(rsBenchSymbol, currentInterval); 
+         } catch(e){
+           console.warn("Bench fetch fail");
+         }
       }
 
-      // 2. 計算 MA (使用 currentMaType/Len)
       const maRaw = calcMA(stockData, currentMaLen, currentMaType);
       const maData = sanitizeLineData(maRaw);
 
@@ -871,7 +856,6 @@
       rsData.forEach(d => cacheRS.set(d.time, d.value));
       rsMaData.forEach(d => cacheRSMA.set(d.time, d.value));
 
-      // 3. 繪圖
       candleSeries.setData(stockData);
       maSeries.setData(maData);
       maSeries.applyOptions({ title: `${currentMaType}${currentMaLen}` });
@@ -899,9 +883,6 @@
     }
   }
 
-  // ============================================
-  // 8. 更新面板
-  // ============================================
   function updatePanel(stock, maData, rsInfo, isMock, hasBench) {
     const last = stock[stock.length-1];
     const maMap = new Map(maData.map(m=>[m.time, m.value]));
@@ -931,7 +912,6 @@
     else if (!priceAboveMA && !maUp) stage = 4;
     else if (!priceAboveMA && maUp) stage = 3;
 
-    // 整合評估結果物件
     const evalResult = {
       stage,
       priceAboveMA,
@@ -941,11 +921,8 @@
       benchmarkAvailable: hasBench
     };
 
-    // 計算詳細分數
     const scoreObj = calcScoreDetails(evalResult);
 
-    // --- UI 更新 ---
-    // Gauge
     const needle = document.getElementById("gaugeNeedle");
     document.getElementById("scoreVal").textContent = scoreObj.total;
     let deg = -90;
@@ -956,13 +933,11 @@
     needle.style.transform = `rotate(${deg}deg)`;
     document.getElementById("scoreText").textContent = txt;
 
-    // Mini Metrics
     document.getElementById("scoreTrend").textContent = scoreObj.trend;
     document.getElementById("scoreMom").textContent = scoreObj.momentum;
     document.getElementById("scoreVol").textContent = scoreObj.volume;
     document.getElementById("scoreRS").textContent = scoreObj.rs;
 
-    // Stage Info
     document.getElementById("infoPrice").textContent = last.close.toFixed(2);
     document.getElementById("maLabel").textContent = `${currentMaLen}MA`;
     document.getElementById("infoMA").textContent = maNow ? maNow.toFixed(2) : "-";
@@ -976,7 +951,6 @@
     sBadge.textContent = `Stage ${stage}`;
     sBadge.style.background = stage===2 ? "#10b981" : (stage===4 ? "#ef4444" : "#fbbf24");
 
-    // 階段詳細說明 (新增功能)
     const stageDescEl = document.getElementById("stageDetail");
     let sDesc = "資料不足，無法判讀。";
     if(stage===1) sDesc = "股價多在盤整區間震盪，均線走平。此階段常被視為主力默默佈局區，但方向尚未明朗，較適合耐心觀察。";
@@ -985,7 +959,6 @@
     else if(stage===4) sDesc = "股價跌破長期均線且均線持續下彎，屬空頭趨勢。溫斯坦建議此階段應盡量避免持有多單。";
     stageDescEl.textContent = sDesc;
 
-    // Checklist HTML
     const container = document.getElementById("checklistContainer");
     const mkItem = (label, pass, detail) => `
       <div class="check-item">
@@ -1007,20 +980,15 @@
 
     container.innerHTML = html;
 
-    // Risk
     const initStop = maNow ? maNow * 0.95 : 0;
     document.getElementById("riskInitial").textContent = maNow ? initStop.toFixed(2) : "-";
     document.getElementById("riskTrailing").textContent = maNow ? maNow.toFixed(2) : "-";
     document.getElementById("riskResistance").textContent = isBlueSky ? "天空無雲 (Blue Sky)" : `上方約 ${h52.toFixed(2)}`;
   }
 
-  // ============================================
-  // 9. 事件監聽
-  // ============================================
   document.getElementById("searchBtn").addEventListener("click", runAnalysis);
   document.getElementById("symbolInput").addEventListener("keydown", e => { if(e.key==="Enter") runAnalysis(); });
   
-  // 週期切換
   document.querySelectorAll("#tfButtons button").forEach(btn => {
     btn.addEventListener("click", () => {
       document.querySelectorAll("#tfButtons button").forEach(b => b.classList.remove("active"));
@@ -1030,7 +998,6 @@
     });
   });
 
-  // MA 種類切換 (新增)
   document.querySelectorAll("#maTypeButtons button").forEach(btn => {
     btn.addEventListener("click", () => {
       document.querySelectorAll("#maTypeButtons button").forEach(b => b.classList.remove("active"));
@@ -1040,7 +1007,6 @@
     });
   });
 
-  // MA 週期切換 (新增)
   document.querySelectorAll("#maLenButtons button").forEach(btn => {
     btn.addEventListener("click", () => {
       document.querySelectorAll("#maLenButtons button").forEach(b => b.classList.remove("active"));
@@ -1057,7 +1023,6 @@
     });
   });
 
-  // 僅初始化圖表，不自動執行
   window.addEventListener("DOMContentLoaded", () => {
     initCharts();
   });
