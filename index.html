@@ -3,498 +3,408 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Weinstein Pro (Classic Tooltip)</title>
+  <title>W.PRO+ Analytics (Synced)</title>
 
-  <!-- K 線圖套件 -->
+  <!-- Lightweight Charts -->
   <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
 
   <style>
     :root {
-      --bg-color: #111827;
-      --panel-color: #1f2937;
-      --sub-panel: #111827;
-      --text-color: #e5e7eb;
-      --muted: #9ca3af;
-      --accent: #3b82f6;
-      --up: #10b981;
-      --down: #ef4444;
-      --border: #374151;
-      --card-radius: 8px;
+      /* 專業深色主題 */
+      --bg-color: #0b0e11;
+      --panel-bg: #151a21;
+      --border-color: #2a2e39;
+      --text-main: #e0e3eb;
+      --text-muted: #8d9096;
+      --accent-color: #2962ff;
+      
+      --up-color: #089981;
+      --down-color: #f23645;
+      --warn-color: #fbc02d;
+      
+      --wma13-color: #00bcd4;
+      --wma26-color: #9c27b0;
+      --wma52-color: #e91e63;
+      
+      --rs-line: #ff9800;
+      --rs-ma: #b2b5be;
     }
 
-    * { box-sizing: border-box; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
     body {
       margin: 0;
-      padding: 0;
       background-color: var(--bg-color);
-      color: var(--text-color);
-      font-family: "Roboto Mono", system-ui, -apple-system, sans-serif;
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Microsoft JhengHei", "Segoe UI", Roboto, sans-serif;
       height: 100vh;
       display: flex;
       flex-direction: column;
       overflow: hidden;
     }
 
-    /* 捲軸美化 */
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: var(--bg-color); }
-    ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb { background: #363a45; border-radius: 3px; }
 
+    /* Header */
     header {
-      height: 56px;
-      background: #1f2937;
-      border-bottom: 1px solid var(--border);
+      height: 52px;
+      background: var(--panel-bg);
+      border-bottom: 1px solid var(--border-color);
       display: flex;
       align-items: center;
-      gap: 12px;
       padding: 0 16px;
-      font-size: 13px;
+      gap: 16px;
       flex-shrink: 0;
       z-index: 20;
+      white-space: nowrap;
       overflow-x: auto;
     }
 
     .logo {
-      font-size: 18px;
       font-weight: 900;
-      color: #f9fafb;
+      font-size: 18px;
+      color: #fff;
       margin-right: 8px;
-      white-space: nowrap;
     }
+    .logo span { color: var(--accent-color); }
 
-    .toolbar-item {
+    .control-group {
       display: flex;
       align-items: center;
-      gap: 6px;
-      flex-shrink: 0;
+      gap: 8px;
+      border-right: 1px solid var(--border-color);
+      padding-right: 16px;
+      height: 32px;
     }
-    
-    .toolbar-label {
-      font-size: 11px;
-      color: var(--muted);
-      margin-right: 2px;
-      white-space: nowrap;
-    }
-    @media (max-width: 1100px) { .toolbar-label { display: none; } }
+    .control-group:last-child { border-right: none; }
 
-    input, select {
-      background: #111827;
-      border: 1px solid #374151;
-      color: #e5e7eb;
-      padding: 5px 10px;
+    .control-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 600;
+      display: none; 
+    }
+    @media(min-width: 1400px) { .control-label { display: block; } }
+
+    input[type="text"], select {
+      background: #000000;
+      border: 1px solid var(--border-color);
+      color: #fff;
+      padding: 4px 8px;
       border-radius: 4px;
       font-size: 13px;
       outline: none;
-      font-family: inherit;
     }
-    input:focus, select:focus { border-color: var(--accent); }
-
-    button {
-      background: var(--accent);
+    input[type="text"]:focus, select:focus { border-color: var(--accent-color); }
+    
+    button.btn-primary {
+      background: var(--accent-color);
       color: #fff;
       border: none;
-      padding: 5px 12px;
+      padding: 5px 14px;
       border-radius: 4px;
-      cursor: pointer;
-      font-size: 13px;
       font-weight: 600;
-      transition: opacity 0.2s;
-      white-space: nowrap;
+      font-size: 13px;
+      cursor: pointer;
     }
-    button:hover { opacity: 0.9; }
-    button:disabled { background: #4b5563; cursor: not-allowed; }
+    button.btn-primary:hover { filter: brightness(1.1); }
 
     .segmented {
-      display: inline-flex;
-      background: #111827;
+      display: flex;
+      background: #000;
       border-radius: 4px;
-      border: 1px solid #374151;
+      border: 1px solid var(--border-color);
       overflow: hidden;
     }
     .segmented button {
       background: transparent;
-      border-radius: 0;
+      border: none;
+      color: var(--text-muted);
       padding: 4px 10px;
       font-size: 12px;
-      color: #9ca3af;
-      font-weight: normal;
+      cursor: pointer;
+      border-right: 1px solid var(--border-color);
     }
-    .segmented button.active {
-      background: #374151;
-      color: #fff;
-      font-weight: bold;
-    }
-    /* WMA Toggle Buttons Active State Colors */
-    .segmented button.active-wma13 { background: rgba(34, 211, 238, 0.2); color: #22d3ee; }
-    .segmented button.active-wma26 { background: rgba(192, 132, 252, 0.2); color: #c084fc; }
-    .segmented button.active-wma52 { background: rgba(244, 114, 182, 0.2); color: #f472b6; }
+    .segmented button:last-child { border-right: none; }
+    .segmented button:hover { color: var(--text-main); background: #1e222d; }
+    .segmented button.active { background: #2a2e39; color: #fff; font-weight: 600; }
+    
+    .segmented button.active[data-wma="13"] { color: var(--wma13-color); background: rgba(0, 188, 212, 0.15); }
+    .segmented button.active[data-wma="26"] { color: var(--wma26-color); background: rgba(156, 39, 176, 0.15); }
+    .segmented button.active[data-wma="52"] { color: var(--wma52-color); background: rgba(233, 30, 99, 0.15); }
 
-    .main {
-      display: flex;
-      flex: 1;
-      overflow: hidden;
-      position: relative;
-    }
+    /* Layout */
+    .layout { display: flex; flex: 1; overflow: hidden; }
 
-    /* 左側自選股 */
     .sidebar {
-      width: 180px;
-      background: #1f2937;
-      border-right: 1px solid var(--border);
+      width: 200px;
+      background: var(--panel-bg);
+      border-right: 1px solid var(--border-color);
       display: flex;
       flex-direction: column;
       flex-shrink: 0;
     }
-    .watch-item {
-      padding: 10px 14px;
-      border-bottom: 1px solid #374151;
-      cursor: pointer;
-      transition: 0.2s;
-    }
-    .watch-item:hover { background: #111827; border-left: 3px solid var(--accent); }
-    .watch-symbol { font-weight: bold; color: #fff; font-size: 13px; }
-    .watch-name { font-size: 11px; color: #9ca3af; margin-top: 2px; }
+    .sidebar-header { padding: 12px; font-size: 12px; font-weight: 700; color: var(--text-muted); border-bottom: 1px solid var(--border-color); }
+    .watch-list { overflow-y: auto; flex: 1; }
+    .watch-item { padding: 10px 14px; border-bottom: 1px solid var(--border-color); cursor: pointer; transition: background 0.2s; }
+    .watch-item:hover { background: #2a2e39; }
+    .watch-item.active { background: #2a2e39; border-left: 3px solid var(--accent-color); }
+    .w-symbol { font-weight: 600; font-size: 13px; color: #fff; }
+    .w-name { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
 
-    /* 圖表區 */
-    .chart-column {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      background: #111827;
-      position: relative;
-    }
+    .chart-container { flex: 1; display: flex; flex-direction: column; background: var(--bg-color); position: relative; }
+    .chart-main { flex: 1; position: relative; width: 100%; }
+    .chart-sub { height: 25%; min-height: 150px; border-top: 1px solid var(--border-color); position: relative; width: 100%; }
+    #chart-main-div, #chart-sub-div { width: 100%; height: 100%; }
 
-    .chart-main-area {
-      flex: 1; 
-      position: relative;
-      width: 100%;
-    }
-    
-    .chart-sub-area {
-      height: 160px; 
-      position: relative;
-      width: 100%;
-      border-top: 1px solid var(--border);
-    }
-
-    #chart-main, #chart-rs {
-      width: 100%;
-      height: 100%;
-    }
-
-    /* 懸浮 Tooltip (回歸 Test2 風格：清楚列表) */
-    .floating-tooltip {
-      position: absolute;
-      display: none;
-      z-index: 1000;
-      background: rgba(17, 24, 39, 0.95);
-      border: 1px solid #4b5563;
-      border-radius: 6px;
-      padding: 12px;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.6);
-      pointer-events: none;
-      font-size: 13px; /* 字體稍微加大 */
-      color: #e5e7eb;
-      backdrop-filter: blur(4px);
-      min-width: 180px;
-      line-height: 1.6;
-      font-family: 'Roboto Mono', monospace;
-    }
-    .tooltip-title { 
-      font-weight: bold; color: #fff; margin-bottom: 8px; 
-      border-bottom: 1px solid #4b5563; padding-bottom: 6px; 
-      font-size: 14px;
-    }
-    .tt-row { 
-      display: flex; 
-      justify-content: space-between; /* 左右對齊 */
-      margin-bottom: 4px;
-    }
-    .tt-lbl { 
-      color: #9ca3af; 
-      margin-right: 16px;
-    }
-    .tt-val {
-      font-weight: bold;
-      text-align: right;
-    }
-    
-    .val-up { color: var(--up); }
-    .val-down { color: var(--down); }
-    .val-accent { color: var(--accent); }
-    .val-rs { color: #f97316; }
-    .val-rsma { color: #d1d5db; }
-    
-    /* WMA Colors */
-    .val-wma13 { color: #22d3ee; }
-    .val-wma26 { color: #c084fc; }
-    .val-wma52 { color: #f472b6; }
-
-    /* 右側分析面板 */
+    /* Analysis Panel */
     .panel {
       width: 360px;
-      background: #1f2937;
-      border-left: 1px solid var(--border);
-      padding: 16px;
+      background: var(--panel-bg);
+      border-left: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
       overflow-y: auto;
       flex-shrink: 0;
+      padding: 16px;
+      gap: 16px;
     }
-    
+    @media (max-width: 1000px) { .sidebar { display: none; } }
+    @media (max-width: 800px) { .panel { display: none; } }
+
     .card {
-      background: #111827;
-      border: 1px solid #374151;
-      border-radius: 8px;
+      background: #1e232b;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
       padding: 12px;
-      margin-bottom: 12px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     }
-    .card-title {
+    .card-header {
       font-size: 14px;
-      font-weight: bold;
+      font-weight: 700;
       color: #fff;
-      margin-bottom: 8px;
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 8px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-bottom: 1px solid #374151;
-      padding-bottom: 6px;
     }
 
-    /* 儀表板 Gauge */
-    .gauge-wrap {
-      display: flex;
-      align-items: center;
-      gap: 15px;
-    }
+    .gauge-wrap { display: flex; align-items: center; gap: 16px; margin-bottom: 12px; }
     .gauge {
-      width: 100px;
-      height: 50px;
-      background: conic-gradient(from 180deg, #4b5563 0deg, #ef4444 50deg, #fbbf24 100deg, #10b981 150deg, #3b82f6 180deg);
+      width: 100px; height: 50px;
+      background: conic-gradient(from 180deg, #787b86 0deg, #f23645 50deg, #fbc02d 100deg, #089981 150deg, #2962ff 180deg);
       border-radius: 100px 100px 0 0;
       position: relative;
     }
     .gauge-inner {
-      width: 80px;
-      height: 40px;
-      background: #111827;
+      width: 80px; height: 40px;
+      background: #1e232b;
       border-radius: 80px 80px 0 0;
-      position: absolute;
-      bottom: 0;
-      left: 10px;
+      position: absolute; bottom: 0; left: 10px;
     }
     .needle {
-      width: 2px;
-      height: 45px;
+      width: 2px; height: 45px;
       background: #fff;
-      position: absolute;
-      bottom: 0;
-      left: 50%;
+      position: absolute; bottom: 0; left: 50%;
       transform-origin: bottom center;
       transform: rotate(-90deg);
       transition: transform 0.8s ease-out;
     }
-    .score-big { font-size: 28px; font-weight: 800; color: #fff; text-align: center; }
-    .score-text { font-size: 12px; text-align: center; color: #9ca3af; }
+    .score-big { font-size: 32px; font-weight: 800; color: #fff; line-height: 1; text-align: center; }
+    .score-text { font-size: 13px; color: var(--text-muted); margin-top: 4px; text-align: center; }
 
     .mini-metrics {
-      margin-top: 10px;
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 6px 12px;
-      font-size: 11px;
-      border-top: 1px dashed #374151;
-      padding-top: 8px;
+      gap: 8px 16px;
+      font-size: 12px;
+      border-top: 1px dashed var(--border-color);
+      padding-top: 12px;
     }
     .mm-item { display: flex; justify-content: space-between; }
-    .mm-label { color: #9ca3af; }
-    .mm-val { font-weight: bold; color: #e5e7eb; }
+    .mm-label { color: var(--text-muted); }
+    .mm-val { font-weight: bold; color: var(--text-main); }
 
-    /* 檢查表 Checklist */
     .check-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 6px;
-      font-size: 12px;
-      border-bottom: 1px dashed #374151;
-      padding-bottom: 4px;
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 8px; font-size: 13px;
+      border-bottom: 1px dashed #2a2e39; padding-bottom: 6px;
     }
-    .check-label { color: #d1d5db; }
+    .check-item:last-child { border-bottom: none; }
+    .check-label { color: var(--text-muted); }
     
     .badge {
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-size: 11px;
-      font-weight: bold;
-      min-width: 45px;
-      text-align: center;
+      padding: 2px 8px; border-radius: 4px;
+      font-size: 11px; font-weight: 700;
+      min-width: 50px; text-align: center;
     }
-    .badge-pass { background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid #10b981; }
-    .badge-fail { background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid #ef4444; }
-    .badge-warn { background: rgba(251, 191, 36, 0.2); color: #fbbf24; border: 1px solid #fbbf24; }
+    .badge-pass { background: rgba(8, 153, 129, 0.2); color: #089981; border: 1px solid #089981; }
+    .badge-fail { background: rgba(242, 54, 69, 0.2); color: #f23645; border: 1px solid #f23645; }
+    .badge-warn { background: rgba(251, 192, 45, 0.2); color: #fbc02d; border: 1px solid #fbc02d; }
+    .badge-neutral { background: #363a45; color: #ccc; }
 
-    .check-detail {
-      font-size: 11px;
-      color: #6b7280;
-      margin-top: 2px;
-      text-align: right;
+    .check-detail { font-size: 11px; color: #666; margin-top: 2px; text-align: right; }
+    
+    .stage-desc { 
+      font-size: 13px; color: #e0e3eb; 
+      margin-top: 10px; padding: 10px; 
+      background: rgba(255,255,255,0.05); border-radius: 4px; 
+      line-height: 1.6;
+      border-left: 3px solid var(--accent-color);
     }
-
-    .stage-detail {
-      font-size: 12px;
-      color: #9ca3af;
-      margin-top: 8px;
-      line-height: 1.5;
-      background: rgba(31, 41, 55, 0.5);
-      padding: 8px;
-      border-radius: 4px;
-    }
+    .stage-desc strong { display: block; margin-bottom: 4px; color: #fff; }
 
     .risk-note {
-      font-size: 11px;
-      color: #6b7280;
-      margin-top: 10px;
-      line-height: 1.4;
-      border-top: 1px solid #374151;
-      padding-top: 8px;
+      font-size: 11px; color: #6b7280; margin-top: 10px; line-height: 1.4;
+      border-top: 1px solid var(--border-color); padding-top: 8px;
     }
 
+    /* Fixed Tooltip Style */
+    .tt-container {
+      position: absolute; display: none;
+      z-index: 100;
+      background: rgba(17, 24, 39, 0.95);
+      border: 1px solid #374151;
+      border-radius: 6px; 
+      padding: 10px 14px;
+      pointer-events: none;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+      backdrop-filter: blur(4px);
+      min-width: 180px;
+      font-family: 'Roboto Mono', monospace; 
+      font-size: 13px;
+      color: #e5e7eb;
+    }
+    .tt-header { 
+      font-weight: 700; color: #fff; 
+      margin-bottom: 8px; 
+      padding-bottom: 6px;
+      border-bottom: 1px solid #4b5563; 
+      font-size: 14px;
+    }
+    .tt-row { 
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 4px; line-height: 1.4;
+    }
+    .tt-lbl { color: #9ca3af; font-weight: normal; }
+    .tt-val { font-weight: 700; text-align: right; }
+    
+    .c-up { color: #f23645; } 
+    .c-down { color: #089981; }
+    .c-vol { color: #fff; }
+    .c-sma { color: #2962ff; }
+    .c-rs { color: #ff9800; }
+    .c-rsma { color: #b2b5be; }
+    
+    .status-bar { margin-left: auto; font-size: 12px; color: var(--warn-color); font-weight: 600; }
     .loading-overlay {
-      position: absolute;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(17, 24, 39, 0.8);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      flex-direction: column;
-      z-index: 50;
-      display: none;
+      position: absolute; inset: 0; background: rgba(11,14,17,0.8);
+      display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 50;
     }
     .spinner {
-      border: 3px solid #374151;
-      border-top: 3px solid var(--accent);
-      border-radius: 50%;
-      width: 30px;
-      height: 30px;
-      animation: spin 1s linear infinite;
-      margin-bottom: 10px;
+      width: 30px; height: 30px; border: 3px solid #363a45;
+      border-top-color: var(--accent-color); border-radius: 50%;
+      animation: spin 0.8s linear infinite;
     }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
-    @media (max-width: 1024px) {
-      .sidebar { display: none; }
-      .panel { width: 300px; }
-    }
   </style>
 </head>
 <body>
 
 <header>
-  <div class="logo">W.PRO</div>
+  <div class="logo">W.PRO<span>+</span></div>
   
-  <div class="toolbar-item">
-    <input id="symbolInput" type="text" value="2330.TW" placeholder="代號" style="width: 100px;">
-    <button id="searchBtn">分析</button>
+  <div class="control-group">
+    <input type="text" id="symbolInput" value="2330.TW" placeholder="代號" style="width: 100px;">
+    <button class="btn-primary" id="searchBtn">分析</button>
   </div>
 
-  <div class="toolbar-item">
-    <span class="toolbar-label">週期</span>
+  <div class="control-group">
+    <span class="control-label">週期</span>
     <div class="segmented" id="tfButtons">
       <button data-tf="15m">15m</button>
       <button data-tf="30m">30m</button>
       <button data-tf="60m">60m</button>
-      <button data-tf="1d">日線</button>
-      <button data-tf="1wk" class="active">週線</button>
+      <button data-tf="1d">日</button>
+      <button data-tf="1wk" class="active">週</button>
     </div>
   </div>
 
-  <!-- RS 基準選擇 (新功能) -->
-  <div class="toolbar-item">
-    <span class="toolbar-label">RS基準</span>
-    <select id="rsBenchmark" onchange="runAnalysis()">
+  <div class="control-group">
+    <span class="control-label">RS基準</span>
+    <select id="rsBenchmark">
       <optgroup label="台灣">
         <option value="^TWII" selected>加權指數</option>
         <option value="^TWO">櫃買指數</option>
       </optgroup>
       <optgroup label="美國">
-        <option value="^GSPC">標普 500</option>
+        <option value="^GSPC">S&P 500</option>
         <option value="^DJI">道瓊工業</option>
-        <option value="^IXIC">那斯達克</option>
+        <option value="^IXIC">Nasdaq</option>
         <option value="^SOX">費半</option>
       </optgroup>
     </select>
   </div>
 
-  <div class="toolbar-item">
-    <span class="toolbar-label">WMA輔助</span>
-    <div class="segmented" id="wmaToggleButtons">
-      <button data-wma="13" onclick="toggleAuxWMA(13)">13</button>
-      <button data-wma="26" onclick="toggleAuxWMA(26)">26</button>
-      <button data-wma="52" onclick="toggleAuxWMA(52)">52</button>
+  <div class="control-group">
+    <span class="control-label">WMA輔助</span>
+    <div class="segmented" id="wmaAuxButtons">
+      <button data-wma="13">13</button>
+      <button data-wma="26">26</button>
+      <button data-wma="52">52</button>
     </div>
   </div>
 
-  <div class="toolbar-item">
-    <span class="toolbar-label">主均線</span>
+  <div class="control-group">
+    <span class="control-label">主均線</span>
     <div class="segmented" id="maTypeButtons">
       <button data-type="SMA" class="active">SMA</button>
       <button data-type="WMA">WMA</button>
     </div>
-  </div>
-
-  <div class="toolbar-item">
-    <span class="toolbar-label">參數</span>
-    <div class="segmented" id="maLenButtons">
+    <div class="segmented" id="maLenButtons" style="margin-left: 4px;">
       <button data-len="20">20</button>
       <button data-len="30" class="active">30</button>
       <button data-len="60">60</button>
     </div>
   </div>
 
-  <div id="status-bar" style="margin-left: auto; color: #fbbf24; font-size: 12px;">請輸入代號並點擊「分析」</div>
+  <div id="statusBar" class="status-bar"></div>
 </header>
 
-<div class="main">
-  <!-- 左側選單 -->
+<div class="layout">
   <aside class="sidebar">
-    <div style="padding:12px; font-weight:bold; color:#fff; border-bottom:1px solid #374151;">自選觀察</div>
-    <div class="watch-item" data-s="2330.TW"><div class="watch-symbol">2330.TW</div><div class="watch-name">台積電</div></div>
-    <div class="watch-item" data-s="2454.TW"><div class="watch-symbol">2454.TW</div><div class="watch-name">聯發科</div></div>
-    <div class="watch-item" data-s="2603.TW"><div class="watch-symbol">2603.TW</div><div class="watch-name">長榮</div></div>
-    <div class="watch-item" data-s="NVDA"><div class="watch-symbol">NVDA</div><div class="watch-name">NVIDIA</div></div>
-    <div class="watch-item" data-s="TSLA"><div class="watch-symbol">TSLA</div><div class="watch-name">Tesla</div></div>
-    <div class="watch-item" data-s="^TWII"><div class="watch-symbol">^TWII</div><div class="watch-name">加權指數</div></div>
+    <div class="sidebar-header">自選觀察 (Watchlist)</div>
+    <div class="watch-list" id="watchList"></div>
   </aside>
 
-  <!-- 中間圖表 -->
-  <div class="chart-column">
-    <div id="tooltip" class="floating-tooltip"></div>
+  <main class="chart-container">
     <div id="loading" class="loading-overlay">
       <div class="spinner"></div>
-      <div id="loading-text" style="color:#fff; font-size:12px;">讀取中...</div>
+      <div style="margin-top:10px; font-size:12px; color:#ccc;">資料讀取中...</div>
     </div>
+    
+    <div id="tooltip" class="tt-container"></div>
 
-    <div class="chart-main-area">
-      <div id="chart-main"></div>
-    </div>
-    <div class="chart-sub-area">
-      <div id="chart-rs"></div>
-    </div>
-  </div>
+    <div class="chart-main"><div id="chart-main-div"></div></div>
+    <div class="chart-sub"><div id="chart-sub-div"></div></div>
+  </main>
 
-  <!-- 右側詳細分析 -->
   <aside class="panel">
-    <!-- 儀表板 -->
     <div class="card">
-      <div class="card-title">多空戰力 (Momentum)</div>
+      <div class="card-header">多空戰力 (Momentum)</div>
       <div class="gauge-wrap">
         <div class="gauge">
           <div class="needle" id="gaugeNeedle"></div>
           <div class="gauge-inner"></div>
         </div>
-        <div style="flex:1">
+        <div style="flex:1; text-align:center;">
           <div id="scoreVal" class="score-big">--</div>
-          <div id="scoreText" class="score-text">尚未分析</div>
+          <div id="scoreText" class="score-text">等待分析</div>
         </div>
       </div>
       <div class="mini-metrics">
@@ -505,50 +415,47 @@
       </div>
     </div>
 
-    <!-- 階段狀態 -->
     <div class="card">
-      <div class="card-title">目前階段 (Stage)</div>
-      <div style="text-align:center; margin-bottom:10px;">
-        <span id="stageBadge" class="badge" style="font-size:14px; padding:4px 12px; background:#374151; color:#fff;">待分析</span>
+      <div class="card-header">
+        <span>目前階段 (Stage Analysis)</span>
+        <span id="stageBadge" class="badge badge-neutral">N/A</span>
       </div>
       <div class="check-item">
         <span class="check-label">收盤價</span>
         <span id="infoPrice" style="font-weight:bold; color:#fff;">-</span>
       </div>
       <div class="check-item">
-        <span class="check-label"><span id="maLabel">30MA</span></span>
-        <span id="infoMA" style="font-weight:bold; color:var(--accent);">-</span>
+        <span class="check-label" id="infoMALabel">MA</span>
+        <span id="infoMA" style="font-weight:bold; color:var(--accent-color);">-</span>
       </div>
       <div class="check-item">
         <span class="check-label">乖離率 (Bias)</span>
         <span id="infoBias" style="font-weight:bold;">-</span>
       </div>
-      <div id="stageDetail" class="stage-detail">
-        <!-- 階段詳細說明文字 -->
+      <div id="stageDesc" class="stage-desc">
+        分析說明將顯示於此。
       </div>
     </div>
 
-    <!-- 檢查表 -->
     <div class="card">
-      <div class="card-title">溫斯坦檢查表 (Checklist)</div>
-      <div id="checklistContainer">
-        <div style="text-align:center; color:#6b7280; font-size:12px;">請輸入代號開始分析</div>
+      <div class="card-header">溫斯坦檢查表 (Checklist)</div>
+      <div id="checklistItems">
+        <div style="text-align:center; color:#555; font-size:12px;">請輸入代號開始分析</div>
       </div>
     </div>
 
-    <!-- 風險 -->
     <div class="card">
-      <div class="card-title">風險控管 (Risk)</div>
+      <div class="card-header">風險控管 (Risk Management)</div>
       <div class="check-item">
         <span class="check-label">初始停損 (Initial)</span>
-        <span id="riskInitial" style="color:#ef4444; font-weight:bold;">-</span>
+        <span id="riskInitial" style="color:var(--down-color); font-weight:bold;">-</span>
       </div>
       <div class="check-item">
         <span class="check-label">移動停損 (Trailing)</span>
-        <span id="riskTrailing" style="color:#fbbf24; font-weight:bold;">-</span>
+        <span id="riskTrailing" style="color:var(--warn-color); font-weight:bold;">-</span>
       </div>
-      <div style="margin-top:8px; font-size:12px;">
-        <span class="check-label">壓力狀態：</span>
+      <div class="check-item">
+        <span class="check-label">壓力狀態</span>
         <span id="riskResistance" style="color:#fff;">-</span>
       </div>
       <div class="risk-note">
@@ -559,578 +466,470 @@
 </div>
 
 <script>
-  let mainChart = null;
-  let rsChart = null;
-  let candleSeries = null;
-  let maSeries = null;
-  let volumeSeries = null;
-  let rsSeries = null;
-  let rsMaSeries = null;
+const PROXY_LIST = [
+  { url: "https://corsproxy.io/?", type: "direct" },
+  { url: "https://api.allorigins.win/raw?url=", type: "param" },
+  { url: "https://thingproxy.freeboard.io/fetch/", type: "direct" }
+];
 
-  let auxWMASeries = { 13: null, 26: null, 52: null };
-  let wmaVisibility = { 13: false, 26: false, 52: false };
+const WATCHLIST_DATA = [
+  { s: "2330.TW", n: "台積電" },
+  { s: "2454.TW", n: "聯發科" },
+  { s: "2603.TW", n: "長榮" },
+  { s: "NVDA", n: "NVIDIA" },
+  { s: "TSLA", n: "Tesla" },
+  { s: "AAPL", n: "Apple" },
+  { s: "AMD", n: "AMD" },
+  { s: "^TWII", n: "加權指數" },
+  { s: "^GSPC", n: "S&P 500" }
+];
 
-  let cacheRS = new Map();
-  let cacheRSMA = new Map();
-  let cacheAuxWMA = { 13: new Map(), 26: new Map(), 52: new Map() };
+let state = {
+  symbol: "2330.TW",
+  interval: "1wk",    
+  maType: "SMA",      
+  maLen: 30,
+  rsBenchmark: "^TWII",
+  wmaAux: { 13: false, 26: false, 52: false },
+  dataCache: { stock: [], benchmark: [], ma: [], rs: [], rsMa: [], wmaAux: {} }
+};
 
-  let currentInterval = "1wk";
-  let currentMaType = "SMA"; 
-  let currentMaLen = 30;     
-  let isMock = false;
+let charts = { main: null, sub: null, series: { candle: null, volume: null, mainMA: null, wmaAux: {}, rsLine: null, rsMA: null } };
+let tooltipMap = { stock: new Map(), ma: new Map(), wmaAux: { 13: new Map(), 26: new Map(), 52: new Map() }, rs: new Map(), rsMa: new Map() };
 
-  const PROXY_LIST = [
-    { url: "https://corsproxy.io/?", type: "direct" },
-    { url: "https://api.allorigins.win/raw?url=", type: "param" },
-    { url: "https://thingproxy.freeboard.io/fetch/", type: "direct" }
-  ];
+document.addEventListener('DOMContentLoaded', () => {
+  initUI();
+  initCharts();
+  runAnalysis();
+});
 
-  function initCharts() {
-    const mainContainer = document.getElementById("chart-main");
-    const rsContainer = document.getElementById("chart-rs");
-    
-    mainContainer.innerHTML = "";
-    rsContainer.innerHTML = "";
-
-    const chartOptions = {
-      layout: { background: { type: 'solid', color: '#111827' }, textColor: '#9ca3af' },
-      grid: { vertLines: { color: '#1f2937' }, horzLines: { color: '#1f2937' } },
-      rightPriceScale: { borderColor: '#374151' },
-      timeScale: { borderColor: '#374151', timeVisible: true, secondsVisible: false },
-      crosshair: { mode: 1 }, 
+function initUI() {
+  const wlContainer = document.getElementById('watchList');
+  WATCHLIST_DATA.forEach(item => {
+    const el = document.createElement('div');
+    el.className = 'watch-item';
+    el.innerHTML = `<div class="w-symbol">${item.s}</div><div class="w-name">${item.n}</div>`;
+    el.onclick = () => {
+      document.querySelectorAll('.watch-item').forEach(d => d.classList.remove('active'));
+      el.classList.add('active');
+      document.getElementById('symbolInput').value = item.s;
+      runAnalysis();
     };
+    wlContainer.appendChild(el);
+  });
 
-    mainChart = LightweightCharts.createChart(mainContainer, chartOptions);
-    candleSeries = mainChart.addCandlestickSeries({
-      upColor: '#10b981', downColor: '#ef4444', borderVisible: false, wickUpColor: '#10b981', wickDownColor: '#ef4444'
-    });
-    
-    maSeries = mainChart.addLineSeries({ color: '#3b82f6', lineWidth: 2, title: 'MA' });
-
-    auxWMASeries[13] = mainChart.addLineSeries({ color: '#22d3ee', lineWidth: 1, title: 'WMA13', visible: false });
-    auxWMASeries[26] = mainChart.addLineSeries({ color: '#c084fc', lineWidth: 1, title: 'WMA26', visible: false });
-    auxWMASeries[52] = mainChart.addLineSeries({ color: '#f472b6', lineWidth: 1, title: 'WMA52', visible: false });
-
-    volumeSeries = mainChart.addHistogramSeries({
-      priceFormat: { type: 'volume' }, priceScaleId: '', 
-    });
-    volumeSeries.priceScale().applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } });
-
-    rsChart = LightweightCharts.createChart(rsContainer, chartOptions);
-    rsSeries = rsChart.addLineSeries({ color: '#f97316', lineWidth: 2, title: 'RS' });
-    rsMaSeries = rsChart.addLineSeries({ color: '#e5e7eb', lineWidth: 1, lineStyle: 2, title: 'RS MA' });
-
-    const mainTime = mainChart.timeScale();
-    const rsTime = rsChart.timeScale();
-    let isSyncing = false;
-
-    const syncHandler = (source, target) => (range) => {
-      if (!isSyncing && range && Number.isFinite(range.from) && Number.isFinite(range.to)) {
-        isSyncing = true;
-        try { target.setVisibleRange(range); } catch(e) {}
-        isSyncing = false;
-      }
+  document.querySelectorAll('#tfButtons button').forEach(btn => {
+    btn.onclick = () => { setActive(btn, '#tfButtons button'); state.interval = btn.dataset.tf; runAnalysis(); };
+  });
+  document.querySelectorAll('#maTypeButtons button').forEach(btn => {
+    btn.onclick = () => { setActive(btn, '#maTypeButtons button'); state.maType = btn.dataset.type; recalcIndicators(); };
+  });
+  document.querySelectorAll('#maLenButtons button').forEach(btn => {
+    btn.onclick = () => { setActive(btn, '#maLenButtons button'); state.maLen = parseInt(btn.dataset.len); recalcIndicators(); };
+  });
+  document.querySelectorAll('#wmaAuxButtons button').forEach(btn => {
+    btn.onclick = () => {
+      const v = parseInt(btn.dataset.wma);
+      const active = btn.classList.toggle('active');
+      state.wmaAux[v] = active;
+      if(charts.series.wmaAux[v]) charts.series.wmaAux[v].applyOptions({ visible: active });
     };
+  });
+  document.getElementById('rsBenchmark').onchange = (e) => { state.rsBenchmark = e.target.value; runAnalysis(); };
+  document.getElementById('searchBtn').onclick = runAnalysis;
+  document.getElementById('symbolInput').onkeydown = (e) => { if(e.key === 'Enter') runAnalysis(); };
+}
 
-    mainTime.subscribeVisibleTimeRangeChange(syncHandler(mainTime, rsTime));
-    rsTime.subscribeVisibleTimeRangeChange(syncHandler(rsTime, mainTime));
+function setActive(target, selector) {
+  document.querySelectorAll(selector).forEach(b => b.classList.remove('active'));
+  target.classList.add('active');
+}
 
-    new ResizeObserver(entries => {
-      if(!entries[0]) return;
-      const {width, height} = entries[0].contentRect;
-      mainChart.applyOptions({ width, height });
-    }).observe(mainContainer);
+function initCharts() {
+  const chartOpts = {
+    layout: { background: { type: 'solid', color: '#0b0e11' }, textColor: '#8d9096' },
+    grid: { vertLines: { color: '#1e222d' }, horzLines: { color: '#1e222d' } },
+    crosshair: { mode: 1, vertLine: { labelBackgroundColor: '#2962ff' } },
+    timeScale: { borderColor: '#2a2e39', timeVisible: true, rightOffset: 5 },
+    rightPriceScale: { borderColor: '#2a2e39' },
+  };
+  charts.main = LightweightCharts.createChart(document.getElementById('chart-main-div'), chartOpts);
+  charts.sub = LightweightCharts.createChart(document.getElementById('chart-sub-div'), chartOpts);
 
-    new ResizeObserver(entries => {
-      if(!entries[0]) return;
-      const {width, height} = entries[0].contentRect;
-      rsChart.applyOptions({ width, height });
-    }).observe(rsContainer);
+  charts.series.candle = charts.main.addCandlestickSeries({ upColor: '#089981', downColor: '#f23645', borderVisible: false, wickUpColor: '#089981', wickDownColor: '#f23645' });
+  charts.series.volume = charts.main.addHistogramSeries({ priceFormat: { type: 'volume' }, priceScaleId: '' });
+  charts.series.volume.priceScale().applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } });
+  charts.series.mainMA = charts.main.addLineSeries({ color: '#2962ff', lineWidth: 2 });
+  
+  [13,26,52].forEach(p => {
+    let c = p===13?'#00bcd4':(p===26?'#9c27b0':'#e91e63');
+    charts.series.wmaAux[p] = charts.main.addLineSeries({ color: c, lineWidth: 1, visible: false });
+  });
 
-    mainChart.subscribeCrosshairMove(param => updateTooltip(param, 'main'));
-    rsChart.subscribeCrosshairMove(param => updateTooltip(param, 'rs'));
-  }
+  charts.series.rsLine = charts.sub.addLineSeries({ color: '#ff9800', lineWidth: 2 });
+  charts.series.rsMA = charts.sub.addLineSeries({ color: '#b2b5be', lineWidth: 1, lineStyle: 2 });
 
-  // 修改：Tooltip 回歸 Test2 風格（標籤左、數值右、跨圖表整合）
-  function updateTooltip(param, source) {
-    const tooltip = document.getElementById("tooltip");
-    const container = document.querySelector(".chart-column"); 
+  const mainTimeScale = charts.main.timeScale();
+  const subTimeScale = charts.sub.timeScale();
+  let isSyncing = false;
+  
+  const syncLogical = (source, target) => {
+    const range = source.getVisibleLogicalRange();
+    if(!range) return;
+    if(isSyncing) return;
+    isSyncing = true;
+    target.setVisibleLogicalRange(range);
+    isSyncing = false;
+  };
+
+  mainTimeScale.subscribeVisibleLogicalRangeChange(() => syncLogical(mainTimeScale, subTimeScale));
+  subTimeScale.subscribeVisibleLogicalRangeChange(() => syncLogical(subTimeScale, mainTimeScale));
+  
+  new ResizeObserver(e => { if(e[0]) charts.main.applyOptions({ width: e[0].contentRect.width, height: e[0].contentRect.height }); }).observe(document.getElementById('chart-main-div'));
+  new ResizeObserver(e => { if(e[0]) charts.sub.applyOptions({ width: e[0].contentRect.width, height: e[0].contentRect.height }); }).observe(document.getElementById('chart-sub-div'));
+  
+  // Crosshair Sync Logic
+  charts.main.subscribeCrosshairMove(param => {
+    updateTooltip(param);
+    if(param.time) {
+       const rsVal = tooltipMap.rs.get(param.time);
+       // Sync Sub Chart Crosshair to the RS value at that time
+       charts.sub.setCrosshairPosition(rsVal || NaN, param.time, charts.series.rsLine);
+    }
+  });
+
+  charts.sub.subscribeCrosshairMove(param => {
+    updateTooltip(param);
+    if(param.time) {
+       const stockVal = tooltipMap.stock.get(param.time);
+       // Sync Main Chart Crosshair to the Close price
+       charts.main.setCrosshairPosition(stockVal ? stockVal.close : NaN, param.time, charts.series.candle);
+    }
+  });
+}
+
+async function runAnalysis() {
+  const symbol = document.getElementById('symbolInput').value.trim().toUpperCase();
+  state.symbol = symbol;
+  setLoading(true); setStatus("");
+
+  try {
+    let range = '5y'; 
+    if (state.interval === '15m' || state.interval === '30m') range = '59d';
+    if (state.interval === '60m') range = '730d';
+
+    const [stockData, benchData] = await Promise.all([
+      fetchYahoo(symbol, state.interval, range),
+      fetchYahoo(state.rsBenchmark, state.interval, range)
+    ]);
+    if(!stockData || !stockData.length) throw new Error("無資料");
+
+    state.dataCache.stock = stockData;
+    state.dataCache.benchmark = benchData || [];
     
-    if (!param.time || param.point.x < 0 || param.point.y < 0) {
-      tooltip.style.display = "none";
-      return;
-    }
+    tooltipMap.stock.clear();
+    stockData.forEach(d => tooltipMap.stock.set(d.time, d));
 
-    let kData = param.seriesData.get(candleSeries);
-    let volData = param.seriesData.get(volumeSeries);
-    let maData = param.seriesData.get(maSeries);
-    let rsVal = cacheRS.get(param.time);
-    let rsMaVal = cacheRSMA.get(param.time);
+    recalcIndicators();
+  } catch(e) {
+    console.error(e);
+    setStatus("讀取失敗: " + e.message, true);
+  } finally {
+    setLoading(false);
+  }
+}
 
-    let wma13Val = wmaVisibility[13] ? cacheAuxWMA[13].get(param.time) : null;
-    let wma26Val = wmaVisibility[26] ? cacheAuxWMA[26].get(param.time) : null;
-    let wma52Val = wmaVisibility[52] ? cacheAuxWMA[52].get(param.time) : null;
+function recalcIndicators() {
+  const { stock, benchmark } = state.dataCache;
+  if(!stock.length) return;
 
-    if (!kData && !rsVal) { tooltip.style.display = "none"; return; }
+  const mainMA = calcMA(stock, state.maLen, state.maType);
+  state.dataCache.ma = mainMA;
+  tooltipMap.ma.clear(); mainMA.forEach(d => tooltipMap.ma.set(d.time, d.value));
+  charts.series.mainMA.setData(mainMA);
 
-    tooltip.style.display = "block";
+  [13, 26, 52].forEach(p => {
+    const w = calcWMA(stock, p);
+    state.dataCache.wmaAux[p] = w;
+    tooltipMap.wmaAux[p].clear(); w.forEach(d => tooltipMap.wmaAux[p].set(d.time, d.value));
+    charts.series.wmaAux[p].setData(w);
+  });
+
+  // Updated: Strict Alignment RS Calc
+  const rsInfo = calcRSEnhanced(stock, benchmark);
+  const rsData = rsInfo.rsSeries;
+  const rsMaData = rsInfo.rsMaSeries;
+  
+  tooltipMap.rs.clear(); rsData.forEach(d => tooltipMap.rs.set(d.time, d.value));
+  tooltipMap.rsMa.clear(); rsMaData.forEach(d => tooltipMap.rsMa.set(d.time, d.value));
+
+  charts.series.rsLine.setData(rsData);
+  charts.series.rsMA.setData(rsMaData);
+
+  charts.series.candle.setData(stock);
+  charts.series.volume.setData(stock.map(d => ({ time: d.time, value: d.volume, color: d.close >= d.open ? 'rgba(8,153,129,0.3)' : 'rgba(242,54,69,0.3)' })));
+  
+  const totalBars = stock.length;
+  const visibleRange = 120;
+  if(totalBars > visibleRange) {
+    charts.main.timeScale().setVisibleLogicalRange({ from: totalBars - visibleRange, to: totalBars });
+  } else {
+    charts.main.timeScale().fitContent();
+  }
+
+  updateAnalysisPanel(stock, mainMA, rsInfo);
+}
+
+function updateTooltip(param) {
+  const tt = document.getElementById('tooltip');
+  if (!param.time || param.point.x < 0 || param.point.y < 0) { tt.style.display = 'none'; return; }
+  const time = param.time;
+  const stock = tooltipMap.stock.get(time);
+  const ma = tooltipMap.ma.get(time);
+  const rs = tooltipMap.rs.get(time);
+  const rsMa = tooltipMap.rsMa.get(time);
+  if (!stock && !rs) { tt.style.display = 'none'; return; }
+  
+  tt.style.display = 'block';
+  const d = new Date(time * 1000);
+  let dateStr = d.toISOString().split('T')[0];
+  if(state.interval.includes('m')) dateStr += ` ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+  
+  let html = `<div class="tt-header">${dateStr}</div>`;
+  
+  if (stock) {
+    const valColor = stock.close >= stock.open ? 'c-up' : 'c-down';
     
-    const dateStr = new Date(param.time * 1000).toISOString().split('T')[0];
-    let timeStr = "";
-    if (["15m", "30m", "60m"].includes(currentInterval)) {
-       const d = new Date(param.time * 1000);
-       timeStr = " " + d.getHours().toString().padStart(2,'0') + ":" + d.getMinutes().toString().padStart(2,'0');
-    }
-
-    let html = `<div class="tooltip-title">${dateStr}${timeStr}</div>`;
-
-    if (kData) {
-      const color = kData.close >= kData.open ? 'val-up' : 'val-down';
-      html += `
-        <div class="tt-row"><span class="tt-lbl">開盤</span><span class="tt-val ${color}">${kData.open.toFixed(2)}</span></div>
-        <div class="tt-row"><span class="tt-lbl">最高</span><span class="tt-val ${color}">${kData.high.toFixed(2)}</span></div>
-        <div class="tt-row"><span class="tt-lbl">最低</span><span class="tt-val ${color}">${kData.low.toFixed(2)}</span></div>
-        <div class="tt-row"><span class="tt-lbl">收盤</span><span class="tt-val ${color}">${kData.close.toFixed(2)}</span></div>
-      `;
-    }
-
-    if (volData) {
-      let v = volData.value;
-      let vStr = v >= 1000000 ? (v/1000000).toFixed(2)+"M" : (v/1000).toFixed(0)+"K";
-      html += `<div class="tt-row" style="margin-top:4px;"><span class="tt-lbl">成交量</span><span class="tt-val">${vStr}</span></div>`;
-    }
-
-    if (maData) {
-      html += `<div class="tt-row"><span class="tt-lbl">MA${currentMaLen}</span><span class="tt-val val-accent">${maData.value.toFixed(2)}</span></div>`;
-    }
-
-    if (wma13Val) html += `<div class="tt-row"><span class="tt-lbl">WMA13</span><span class="tt-val val-wma13">${wma13Val.toFixed(2)}</span></div>`;
-    if (wma26Val) html += `<div class="tt-row"><span class="tt-lbl">WMA26</span><span class="tt-val val-wma26">${wma26Val.toFixed(2)}</span></div>`;
-    if (wma52Val) html += `<div class="tt-row"><span class="tt-lbl">WMA52</span><span class="tt-val val-wma52">${wma52Val.toFixed(2)}</span></div>`;
-
-    if (rsVal !== undefined) {
-      html += `<div class="tt-row" style="border-top:1px dashed #4b5563; margin-top:4px; padding-top:4px;">
-                 <span class="tt-lbl">RS 線</span><span class="tt-val val-rs">${rsVal.toFixed(3)}</span>
-               </div>`;
-    }
-    if (rsMaVal !== undefined) {
-      html += `<div class="tt-row"><span class="tt-lbl">RS MA20</span><span class="tt-val val-rsma">${rsMaVal.toFixed(3)}</span></div>`;
-    }
-
-    tooltip.innerHTML = html;
-
-    let left = param.point.x + 15;
-    let top = param.point.y + 15;
-
-    if (source === 'rs') {
-      const mainHeight = document.querySelector('.chart-main-area').clientHeight;
-      top += mainHeight;
-    }
-
-    const ttWidth = 180; 
-    const ttHeight = 240; 
-    const containerWidth = container.clientWidth;
-    const containerHeight = container.clientHeight;
-
-    if (left + ttWidth > containerWidth) { left = param.point.x - ttWidth - 15; }
-    if (top + ttHeight > containerHeight) { top = Math.max(0, containerHeight - ttHeight - 10); }
-
-    tooltip.style.left = left + "px";
-    tooltip.style.top = top + "px";
-  }
-
-  function sanitizeLineData(data) {
-    return (data || []).filter(d => 
-      d && typeof d.time === 'number' && Number.isFinite(d.time) && 
-      typeof d.value === 'number' && Number.isFinite(d.value)
-    );
-  }
-
-  async function fetchYahooData(symbol, interval) {
-    // 短線週期智慧區間
-    let range = '3y';
-    if (['15m', '30m', '60m', '90m', '1h'].includes(interval)) {
-      range = '1mo'; 
-    }
-
-    for (let proxy of PROXY_LIST) {
-      try {
-        const query = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?range=${range}&interval=${interval}`;
-        const url = proxy.type === 'param' ? proxy.url + encodeURIComponent(query) : proxy.url + query;
-        
-        const controller = new AbortController();
-        const id = setTimeout(() => controller.abort(), 6000);
-        
-        const res = await fetch(url, { signal: controller.signal });
-        clearTimeout(id);
-        
-        if (!res.ok) continue;
-        const json = await res.json();
-        const finalJson = json.contents ? (typeof json.contents==='string'?JSON.parse(json.contents):json.contents) : json;
-        
-        if (!finalJson.chart?.result) continue;
-        
-        const r = finalJson.chart.result[0];
-        const t = r.timestamp;
-        const q = r.indicators.quote[0];
-        
-        const data = [];
-        for (let i = 0; i < t.length; i++) {
-          if (q.open[i] == null || q.high[i] == null || q.low[i] == null || q.close[i] == null) continue;
-          data.push({
-            time: t[i],
-            open: q.open[i], high: q.high[i], low: q.low[i], close: q.close[i],
-            volume: q.volume[i] || 0
-          });
-        }
-        
-        if (data.length > 0) return data;
-
-      } catch (e) { console.warn("Proxy fail:", e); }
-    }
-    throw new Error("無法連線至資料來源，請檢查網路或稍後再試");
-  }
-
-  function getMockData() {
-    const data = [];
-    let price = 100;
-    const now = Math.floor(Date.now()/1000);
-    const intervalSec = currentInterval.includes('m') ? parseInt(currentInterval)*60 : 86400;
-    
-    for(let i=150; i>0; i--) {
-      const time = now - i*intervalSec;
-      const chg = (Math.random()-0.45)*5;
-      const close = price + chg;
-      const high = Math.max(price, close) + Math.random();
-      const low = Math.min(price, close) - Math.random();
-      data.push({time, open:price, high, low, close, volume: Math.random()*10000+5000});
-      price = close;
-    }
-    return data;
-  }
-
-  function calcSMA(data, period) {
-    const res = [];
-    for (let i=0; i<data.length; i++) {
-      if(i < period-1) continue;
-      let sum = 0;
-      for(let j=0; j<period; j++) sum += data[i-j].close;
-      res.push({ time: data[i].time, value: sum/period });
-    }
-    return res;
-  }
-
-  function calcWMA(data, period) {
-    const res = [];
-    const totalWeight = (period * (period + 1)) / 2;
-    for (let i = 0; i < data.length; i++) {
-      if (i < period - 1) continue;
-      let sum = 0;
-      for (let j = 0; j < period; j++) {
-        sum += data[i - j].close * (period - j);
-      }
-      res.push({ time: data[i].time, value: sum / totalWeight });
-    }
-    return res;
-  }
-
-  function calcMA(data, period, type) {
-    return type === "WMA" ? calcWMA(data, period) : calcSMA(data, period);
-  }
-
-  function calcRS(stock, bench) {
-    if(!bench) return { rs: [], mansfield: 0 };
-    const bMap = new Map(bench.map(b => [b.time, b.close]));
-    
-    const rsRaw = [];
-    for(let s of stock) {
-      const bVal = bMap.get(s.time);
-      if(bVal) rsRaw.push({ time: s.time, value: s.close / bVal });
-    }
-    if(rsRaw.length < 52) return { rs: rsRaw, mansfield: 0 };
-
-    const ma52 = calcSMA(rsRaw.map(r=>({time:r.time, close:r.value})), 52);
-    const maMap = new Map(ma52.map(m=>[m.time, m.value]));
-
-    const last = rsRaw[rsRaw.length-1];
-    const lastMA = maMap.get(last.time);
-    const mansfield = lastMA ? ((last.value / lastMA) - 1) * 10 : 0;
-
-    const first = rsRaw[0].value || 1;
-    const norm = rsRaw.map(r => ({ time: r.time, value: r.value / first }));
-
-    return { rs: norm, mansfield };
-  }
-
-  function calcScoreDetails(r) {
-    let trend = 0, momentum = 0, volume = 0, rs = 0;
-    if (r.stage === 2) trend += 25;
-    else if (r.stage === 4) trend -= 20;
-    if (r.priceAboveMA) trend += 10;
-
-    if (r.maUp) momentum += 20;
-    else momentum -= 5;
-
-    if (r.isVol) volume += 15;
-    
-    if (r.rsStrong) rs += 25;
-    else if (r.benchmarkAvailable) rs -= 15;
-
-    let total = 40 + trend + momentum + volume + rs; 
-    total = Math.max(0, Math.min(100, total));
-
-    return { total, trend, momentum, volume, rs };
-  }
-
-  async function runAnalysis() {
-    const input = document.getElementById("symbolInput");
-    if(!input) return;
-    const symbol = input.value.trim().toUpperCase();
-    if(!symbol) return alert("請輸入代號");
-
-    if(!mainChart) initCharts();
-
-    document.getElementById("loading").style.display = "flex";
-    document.getElementById("status-bar").textContent = `分析中: ${symbol}`;
-    isMock = false;
-
-    try {
-      let stockData;
-      try {
-        stockData = await fetchYahooData(symbol, currentInterval);
-      } catch(e) {
-        console.warn("API Fail, use Mock");
-        stockData = getMockData();
-        isMock = true;
-      }
-
-      const rsBenchSymbol = document.getElementById("rsBenchmark").value;
-      let benchData = null;
-      
-      if (!isMock && rsBenchSymbol) {
-         try { 
-           benchData = await fetchYahooData(rsBenchSymbol, currentInterval); 
-         } catch(e){
-           console.warn("Bench fetch fail");
-         }
-      }
-
-      const maRaw = calcMA(stockData, currentMaLen, currentMaType);
-      const maData = sanitizeLineData(maRaw);
-
-      const wma13Raw = calcWMA(stockData, 13);
-      const wma26Raw = calcWMA(stockData, 26);
-      const wma52Raw = calcWMA(stockData, 52);
-      const wma13Data = sanitizeLineData(wma13Raw);
-      const wma26Data = sanitizeLineData(wma26Raw);
-      const wma52Data = sanitizeLineData(wma52Raw);
-
-      const rsInfo = calcRS(stockData, benchData);
-      const rsData = sanitizeLineData(rsInfo.rs);
-      const rsMaRaw = calcSMA(rsInfo.rs.map(r=>({time:r.time, close:r.value})), 20);
-      const rsMaData = sanitizeLineData(rsMaRaw);
-
-      cacheRS.clear();
-      cacheRSMA.clear();
-      rsData.forEach(d => cacheRS.set(d.time, d.value));
-      rsMaData.forEach(d => cacheRSMA.set(d.time, d.value));
-      
-      cacheAuxWMA[13].clear(); wma13Data.forEach(d => cacheAuxWMA[13].set(d.time, d.value));
-      cacheAuxWMA[26].clear(); wma26Data.forEach(d => cacheAuxWMA[26].set(d.time, d.value));
-      cacheAuxWMA[52].clear(); wma52Data.forEach(d => cacheAuxWMA[52].set(d.time, d.value));
-
-      candleSeries.setData(stockData);
-      maSeries.setData(maData);
-      maSeries.applyOptions({ title: `${currentMaType}${currentMaLen}` });
-      
-      auxWMASeries[13].setData(wma13Data);
-      auxWMASeries[26].setData(wma26Data);
-      auxWMASeries[52].setData(wma52Data);
-      
-      const volData = stockData.map(d => ({
-        time: d.time, value: d.volume,
-        color: d.close >= d.open ? 'rgba(16,185,129,0.5)' : 'rgba(239,68,68,0.5)'
-      }));
-      volumeSeries.setData(volData);
-      
-      rsSeries.setData(rsData);
-      rsMaSeries.setData(rsMaData);
-
-      mainChart.timeScale().fitContent();
-      rsChart.timeScale().fitContent();
-
-      updatePanel(stockData, maData, rsInfo, isMock, !!benchData);
-      document.getElementById("status-bar").textContent = "分析完成";
-
-    } catch(e) {
-      console.error(e);
-      alert("發生錯誤: " + e.message);
-    } finally {
-      document.getElementById("loading").style.display = "none";
-    }
-  }
-
-  function toggleAuxWMA(period) {
-    const btn = document.querySelector(`button[data-wma="${period}"]`);
-    const isActive = btn.classList.contains(`active-wma${period}`);
-    
-    if (isActive) {
-      btn.classList.remove(`active-wma${period}`);
-      wmaVisibility[period] = false;
-    } else {
-      btn.classList.add(`active-wma${period}`);
-      wmaVisibility[period] = true;
-    }
-
-    if (auxWMASeries[period]) {
-      auxWMASeries[period].applyOptions({ visible: wmaVisibility[period] });
-    }
-  }
-
-  function updatePanel(stock, maData, rsInfo, isMock, hasBench) {
-    const last = stock[stock.length-1];
-    const maMap = new Map(maData.map(m=>[m.time, m.value]));
-    const maNow = maMap.get(last.time);
-    const maPrev = maMap.get(stock[stock.length-6]?.time);
-
-    const priceAboveMA = maNow && last.close > maNow;
-    const maUp = maNow && maPrev && maNow > maPrev;
-    
-    let sumV=0, cnt=0;
-    for(let i=1; i<=10; i++) {
-       const b = stock[stock.length-1-i];
-       if(b) { sumV+=b.volume; cnt++; }
-    }
-    const avgV = cnt ? sumV/cnt : 0;
-    const isVol = avgV>0 && last.volume > avgV*1.5 && last.close>last.open;
-
-    let h52=0;
-    for(let i=1; i<=52; i++) {
-       const b = stock[stock.length-1-i];
-       if(b) h52 = Math.max(h52, b.high);
-    }
-    const isBlueSky = h52>0 && last.close >= h52*0.98;
-    
-    let stage = 1;
-    if (priceAboveMA && maUp) stage = 2;
-    else if (!priceAboveMA && !maUp) stage = 4;
-    else if (!priceAboveMA && maUp) stage = 3;
-
-    const evalResult = {
-      stage,
-      priceAboveMA,
-      maUp,
-      isVol,
-      rsStrong: rsInfo.mansfield > 0,
-      benchmarkAvailable: hasBench
-    };
-
-    const scoreObj = calcScoreDetails(evalResult);
-
-    const needle = document.getElementById("gaugeNeedle");
-    document.getElementById("scoreVal").textContent = scoreObj.total;
-    let deg = -90;
-    let txt = "中性整理";
-    if (scoreObj.total >= 75) { deg = 45; txt = "強勢多頭"; }
-    else if (scoreObj.total >= 50) { deg = -10; txt = "多方嘗試"; }
-    else if (scoreObj.total <= 30) { deg = -70; txt = "空方弱勢"; }
-    needle.style.transform = `rotate(${deg}deg)`;
-    document.getElementById("scoreText").textContent = txt;
-
-    document.getElementById("scoreTrend").textContent = scoreObj.trend;
-    document.getElementById("scoreMom").textContent = scoreObj.momentum;
-    document.getElementById("scoreVol").textContent = scoreObj.volume;
-    document.getElementById("scoreRS").textContent = scoreObj.rs;
-
-    document.getElementById("infoPrice").textContent = last.close.toFixed(2);
-    document.getElementById("maLabel").textContent = `${currentMaLen}MA`;
-    document.getElementById("infoMA").textContent = maNow ? maNow.toFixed(2) : "-";
-    
-    const bias = maNow ? ((last.close/maNow - 1)*100).toFixed(2) : "0.00";
-    const biasEl = document.getElementById("infoBias");
-    biasEl.textContent = bias + "%";
-    biasEl.style.color = parseFloat(bias)>0 ? "#10b981" : "#ef4444";
-
-    const sBadge = document.getElementById("stageBadge");
-    sBadge.textContent = `Stage ${stage}`;
-    sBadge.style.background = stage===2 ? "#10b981" : (stage===4 ? "#ef4444" : "#fbbf24");
-
-    const stageDescEl = document.getElementById("stageDetail");
-    let sDesc = "資料不足，無法判讀。";
-    if(stage===1) sDesc = "股價多在盤整區間震盪，均線走平。此階段常被視為主力默默佈局區，但方向尚未明朗，較適合耐心觀察。";
-    else if(stage===2) sDesc = "股價突破整理區並站上均線，且均線開始走揚，是溫斯坦理論中最理想的多頭階段，多數買進訊號集中於此。";
-    else if(stage===3) sDesc = "漲勢趨緩、震盪加劇，均線開始走平甚至下彎，常見為主力出貨階段。建議提高警覺，逐步減碼或拉緊停利。";
-    else if(stage===4) sDesc = "股價跌破長期均線且均線持續下彎，屬空頭趨勢。溫斯坦建議此階段應盡量避免持有多單。";
-    stageDescEl.textContent = sDesc;
-
-    const container = document.getElementById("checklistContainer");
-    const mkItem = (label, pass, detail) => `
-      <div class="check-item">
-        <span class="check-label">${label}</span>
-        <span class="badge ${pass===true?'badge-pass':(pass===false?'badge-fail':'badge-warn')}">
-          ${pass===true?'PASS':(pass===false?'FAIL':'觀察')}
-        </span>
-      </div>
-      <div class="check-detail">${detail}</div>
+    html += `
+      <div class="tt-row"><span class="tt-lbl">開盤</span><span class="tt-val ${valColor}">${stock.open.toFixed(2)}</span></div>
+      <div class="tt-row"><span class="tt-lbl">最高</span><span class="tt-val ${valColor}">${stock.high.toFixed(2)}</span></div>
+      <div class="tt-row"><span class="tt-lbl">最低</span><span class="tt-val ${valColor}">${stock.low.toFixed(2)}</span></div>
+      <div class="tt-row"><span class="tt-lbl">收盤</span><span class="tt-val ${valColor}">${stock.close.toFixed(2)}</span></div>
     `;
     
-    let html = isMock ? `<div style="color:#fbbf24;font-size:11px;text-align:center;margin-bottom:5px;">⚠️ 網路異常，目前顯示模擬資料</div>` : "";
-    
-    html += mkItem(`均線位置 (>${currentMaLen}MA)`, priceAboveMA, `收盤 ${last.close.toFixed(2)} / MA ${maNow?maNow.toFixed(2):'-'}`);
-    html += mkItem("均線方向 (上揚)", maUp, maUp?"趨勢向上":"趨勢走平或向下");
-    html += mkItem("成交量 (突破放量)", isVol?true:"warn", isVol?"量能放大":"量能未顯著放大");
-    html += mkItem("阻力 (Blue Sky)", isBlueSky?true:"warn", isBlueSky?"無明顯壓力":`52週高點 ${h52.toFixed(2)}`);
-    html += mkItem("相對強度 (RS)", rsInfo.mansfield>0, `Mansfield: ${rsInfo.mansfield.toFixed(2)}`);
-
-    container.innerHTML = html;
-
-    const initStop = maNow ? maNow * 0.95 : 0;
-    document.getElementById("riskInitial").textContent = maNow ? initStop.toFixed(2) : "-";
-    document.getElementById("riskTrailing").textContent = maNow ? maNow.toFixed(2) : "-";
-    document.getElementById("riskResistance").textContent = isBlueSky ? "天空無雲 (Blue Sky)" : `上方約 ${h52.toFixed(2)}`;
+    let v = stock.volume >= 1e6 ? (stock.volume/1e6).toFixed(2)+'M' : (stock.volume/1e3).toFixed(0)+'K';
+    html += `<div class="tt-row"><span class="tt-lbl">成交量</span><span class="tt-val c-vol">${v}</span></div>`;
+  }
+  
+  if (ma) {
+    html += `<div class="tt-row"><span class="tt-lbl">${state.maType}${state.maLen}</span><span class="tt-val c-sma">${ma.toFixed(2)}</span></div>`;
   }
 
-  document.getElementById("searchBtn").addEventListener("click", runAnalysis);
-  document.getElementById("symbolInput").addEventListener("keydown", e => { if(e.key==="Enter") runAnalysis(); });
+  [13,26,52].forEach(p => {
+    if(state.wmaAux[p]) {
+      const v = tooltipMap.wmaAux[p].get(time);
+      if(v) {
+        let c = p===13?'#00bcd4':(p===26?'#9c27b0':'#e91e63');
+        html += `<div class="tt-row"><span class="tt-lbl">WMA${p}</span><span class="tt-val" style="color:${c}">${v.toFixed(2)}</span></div>`;
+      }
+    }
+  });
+
+  if (rs) {
+    html += `<div style="border-top:1px dashed #4b5563; margin:6px 0 4px 0;"></div>`;
+    html += `<div class="tt-row"><span class="tt-lbl">RS 線</span><span class="tt-val c-rs">${rs.toFixed(4)}</span></div>`;
+  }
+  if (rsMa) {
+    html += `<div class="tt-row"><span class="tt-lbl">RS MA20</span><span class="tt-val c-rsma">${rsMa.toFixed(4)}</span></div>`;
+  }
+
+  tt.innerHTML = html;
   
-  document.querySelectorAll("#tfButtons button").forEach(btn => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll("#tfButtons button").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      currentInterval = btn.dataset.tf;
-      runAnalysis();
-    });
+  const box = tt.getBoundingClientRect();
+  const cBox = document.querySelector('.chart-container').getBoundingClientRect();
+  let left = param.point.x + 15;
+  let top = param.point.y + 15;
+  if (left + box.width > cBox.width) left = param.point.x - box.width - 15;
+  if (top + box.height > cBox.height) top = param.point.y - box.height - 15; 
+  
+  tt.style.left = left + 'px';
+  tt.style.top = Math.max(10, top) + 'px';
+}
+
+function calcMA(data, len, type) {
+  if(type === 'WMA') return calcWMA(data, len);
+  const res = [];
+  for(let i=0; i<data.length; i++) {
+    if(i < len - 1) continue;
+    let sum = 0;
+    for(let j=0; j<len; j++) sum += data[i-j].close;
+    res.push({ time: data[i].time, value: sum / len });
+  }
+  return res;
+}
+function calcWMA(data, len) {
+  const res = [];
+  let totalWeight = (len * (len + 1)) / 2;
+  for (let i = 0; i < data.length; i++) {
+    if (i < len - 1) continue;
+    let sum = 0;
+    for (let j = 0; j < len; j++) sum += data[i - j].close * (len - j);
+    res.push({ time: data[i].time, value: sum / totalWeight });
+  }
+  return res;
+}
+function calcSMA(data, len) {
+  const res = [];
+  for(let i=0; i<data.length; i++) {
+    if(i < len - 1) continue;
+    let sum = 0;
+    for(let j=0; j<len; j++) sum += data[i-j].close;
+    res.push({ time: data[i].time, value: sum / len });
+  }
+  return res;
+}
+
+// Fixed: Strictly aligns RS data with Stock timestamps
+function calcRSEnhanced(stock, benchmark) {
+  const bMap = new Map();
+  benchmark.forEach(b => bMap.set(b.time, b.close));
+
+  const rsRaw = [];
+  let lastBench = null;
+
+  for(let i=0; i<stock.length; i++) {
+    const s = stock[i];
+    let bClose = bMap.get(s.time);
+
+    // Forward fill
+    if(bClose !== undefined) {
+      lastBench = bClose;
+    } else if (lastBench !== null) {
+      bClose = lastBench;
+    }
+
+    // Must push a value (even if NaN) for every stock bar to keep index alignment
+    if(bClose && bClose > 0) {
+      rsRaw.push({ time: s.time, value: s.close / bClose });
+    } else {
+      rsRaw.push({ time: s.time, value: NaN }); // LineSeries handles NaN as a gap
+    }
+  }
+
+  // Use simple arrays for MA since gaps (NaN) might break simple loop, 
+  // but for simplicity we filter valid points for MA calc and then map back?
+  // Actually, standard SMA ignores NaNs or we can just filter.
+  // To keep alignment, we calculate SMA based on valid points only but push to correct time?
+  // Easier: Filter for MA calculation, then map back to time.
+  
+  const validRS = rsRaw.filter(r => !Number.isNaN(r.value));
+  const rsMa20Raw = calcSMA(validRS.map(r => ({ time: r.time, close: r.value })), 20);
+  const rsMa52Raw = calcSMA(validRS.map(r => ({ time: r.time, close: r.value })), 52);
+  
+  const ma20Map = new Map(); rsMa20Raw.forEach(m => ma20Map.set(m.time, m.value));
+  const ma52Map = new Map(); rsMa52Raw.forEach(m => ma52Map.set(m.time, m.value));
+
+  const rsMa20Aligned = [];
+  stock.forEach(s => {
+    const val = ma20Map.get(s.time);
+    rsMa20Aligned.push({ time: s.time, value: val !== undefined ? val : NaN });
   });
 
-  document.querySelectorAll("#maTypeButtons button").forEach(btn => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll("#maTypeButtons button").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      currentMaType = btn.dataset.type;
-      runAnalysis();
-    });
-  });
+  // Score Logic
+  let mansfield = 0;
+  if(validRS.length > 0) {
+    const lastRS = validRS[validRS.length-1];
+    const last52MA = ma52Map.get(lastRS.time);
+    if(last52MA) mansfield = ((lastRS.value / last52MA) - 1) * 10;
+  }
+  
+  // Normalize start at 1 for display
+  const startVal = validRS[0]?.value || 1;
+  const rsSeries = rsRaw.map(r => ({ time: r.time, value: r.value / startVal }));
+  const rsMaSeries = rsMa20Aligned.map(r => ({ time: r.time, value: r.value / startVal }));
 
-  document.querySelectorAll("#maLenButtons button").forEach(btn => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll("#maLenButtons button").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      currentMaLen = parseInt(btn.dataset.len);
-      runAnalysis();
-    });
-  });
+  return { rsSeries, rsMaSeries, mansfield };
+}
 
-  document.querySelectorAll(".watch-item").forEach(item => {
-    item.addEventListener("click", () => {
-      document.getElementById("symbolInput").value = item.dataset.s;
-      runAnalysis();
-    });
-  });
+function calcScoreDetails(r) {
+  let trend=0, momentum=0, volume=0, rs=0;
+  if (r.stage === 2) trend += 25; else if (r.stage === 4) trend -= 20; if (r.priceAboveMA) trend += 10;
+  if (r.maUp) momentum += 20; else momentum -= 5;
+  if (r.isVol) volume += 15;
+  if (r.rsStrong) rs += 25; else if (r.benchmarkAvailable) rs -= 15;
+  return { total: Math.max(0, Math.min(100, 40+trend+momentum+volume+rs)), trend, momentum, volume, rs };
+}
+function updateAnalysisPanel(stock, maData, rsInfo) {
+  const last = stock[stock.length-1];
+  const maMap = new Map(maData.map(m=>[m.time, m.value]));
+  const curMA = maMap.get(last.time);
+  const prevMA = maMap.get(stock[Math.max(0, stock.length-4)].time);
+  const maUp = (curMA && prevMA) ? curMA > prevMA : false;
+  const priceAboveMA = curMA ? last.close > curMA : false;
+  let volSum = 0, volCnt = 0;
+  for(let i=1; i<=20; i++) { const bar = stock[stock.length - 1 - i]; if(bar) { volSum += bar.volume; volCnt++; } }
+  const avgVol = volCnt ? volSum / volCnt : 1;
+  const isVol = (last.volume > avgVol * 1.5) && (last.close > last.open);
+  let maxHigh = 0; let lookback = Math.min(stock.length, 52);
+  for(let i=0; i<lookback; i++) maxHigh = Math.max(maxHigh, stock[stock.length - 1 - i].high);
+  const isBlueSky = last.close >= maxHigh * 0.98;
+  let stage = 1; if (priceAboveMA && maUp) stage = 2; else if (!priceAboveMA && !maUp) stage = 4; else if (!priceAboveMA && maUp) stage = 3;
+  const scoreObj = calcScoreDetails({ stage, priceAboveMA, maUp, isVol, rsStrong: rsInfo.mansfield > 0, benchmarkAvailable: state.dataCache.benchmark.length > 0 });
+  
+  document.getElementById('scoreVal').innerText = scoreObj.total;
+  document.getElementById('gaugeNeedle').style.transform = `rotate(${ (scoreObj.total / 100 * 180) - 90 }deg)`;
+  let txt = "中性整理"; if (scoreObj.total >= 75) txt = "強勢多頭"; else if (scoreObj.total >= 50) txt = "多方嘗試"; else if (scoreObj.total <= 30) txt = "空方弱勢";
+  document.getElementById('scoreText').innerText = txt;
+  
+  const setMetric = (id, val, goodCond) => { const el=document.getElementById(id); el.innerText=(val>=0?"+":"")+val; el.style.color=goodCond?"var(--up-color)":(val<0?"var(--down-color)":"#888"); };
+  setMetric('scoreTrend', scoreObj.trend, scoreObj.trend > 0);
+  setMetric('scoreMom', scoreObj.momentum, scoreObj.momentum > 0);
+  setMetric('scoreVol', scoreObj.volume, scoreObj.volume > 0);
+  setMetric('scoreRS', scoreObj.rs, scoreObj.rs > 0);
 
-  window.addEventListener("DOMContentLoaded", () => {
-    initCharts();
-  });
+  const sBadge = document.getElementById('stageBadge'); sBadge.innerText = `Stage ${stage}`; sBadge.className = `badge ${stage === 2 ? 'badge-pass' : (stage === 4 ? 'badge-fail' : 'badge-warn')}`;
+  document.getElementById('infoPrice').innerText = last.close.toFixed(2);
+  document.getElementById('infoMALabel').innerText = `${state.maType}${state.maLen}`;
+  document.getElementById('infoMA').innerText = curMA ? curMA.toFixed(2) : '-';
+  const bias = curMA ? ((last.close / curMA) - 1) * 100 : 0;
+  const biasEl = document.getElementById('infoBias'); biasEl.innerText = bias.toFixed(2) + "%"; biasEl.style.color = bias > 0 ? "var(--up-color)" : "var(--down-color)";
+  
+  let desc = "資料不足，無法判讀。";
+  if(stage===1) desc = "<strong>【盤整打底】</strong>股價多在區間震盪，均線走平。此階段常為主力佈局區，但方向尚未明朗，建議耐心觀察突破方向。";
+  else if(stage===2) desc = "<strong>【多頭上升】</strong>股價突破整理區並站上均線，且均線開始走揚。這是溫斯坦理論中最理想的買進與持有階段，動能強勁。";
+  else if(stage===3) desc = "<strong>【頭部做頭】</strong>漲勢趨緩、震盪加劇，均線開始走平甚至下彎。通常是主力出貨階段，建議提高警覺，逐步減碼或拉緊停利。";
+  else if(stage===4) desc = "<strong>【空頭下跌】</strong>股價跌破長期均線且均線持續下彎。空方勢力掌控，溫斯坦建議此階段應避免持有多單，反彈皆是逃命波。";
+  document.getElementById('stageDesc').innerHTML = desc;
 
+  const mkItem = (label, status, detail) => `<div class="check-item"><span class="check-label">${label}</span><div style="text-align:right"><span class="badge ${status==='PASS'?'badge-pass':(status==='FAIL'?'badge-fail':'badge-warn')}">${status}</span><div class="check-detail">${detail}</div></div></div>`;
+  let clHtml = "";
+  clHtml += mkItem(`均線位置 (> ${state.maLen}MA)`, priceAboveMA?'PASS':'FAIL', `Close: ${last.close}`);
+  clHtml += mkItem(`均線方向 (上揚)`, maUp?'PASS':'WARN', maUp?'趨勢向上':'走平或向下');
+  clHtml += mkItem(`成交量 (放量)`, isVol?'PASS':'WARN', isVol?'量能顯著':'量能普通');
+  clHtml += mkItem(`壓力 (Blue Sky)`, isBlueSky?'PASS':'WARN', isBlueSky?'無明顯壓力':'接近高點/有壓');
+  clHtml += mkItem(`相對強度 (RS)`, rsInfo.mansfield>0?'PASS':'FAIL', `Mansfield: ${rsInfo.mansfield.toFixed(2)}`);
+  document.getElementById('checklistItems').innerHTML = clHtml;
+
+  const initStop = curMA ? curMA * 0.95 : 0;
+  document.getElementById('riskInitial').innerText = initStop.toFixed(2);
+  document.getElementById('riskTrailing').innerText = curMA ? curMA.toFixed(2) : "-";
+  document.getElementById('riskResistance').innerText = isBlueSky ? "天空無雲 (Blue Sky)" : `上方約 ${maxHigh.toFixed(2)}`;
+}
+
+async function fetchYahoo(symbol, interval, range) {
+  for (let proxy of PROXY_LIST) {
+    try {
+      const query = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?range=${range}&interval=${interval}`;
+      const url = proxy.type === 'param' ? proxy.url + encodeURIComponent(query) : proxy.url + query;
+      const c = new AbortController(); setTimeout(() => c.abort(), 8000);
+      const res = await fetch(url, { signal: c.signal });
+      if (!res.ok) continue;
+      const json = await res.json();
+      const result = json.chart?.result?.[0];
+      if (!result) continue;
+      const t = result.timestamp || [];
+      const q = result.indicators.quote[0];
+      const out = [];
+      for (let i = 0; i < t.length; i++) {
+        if (q.close[i] != null) out.push({ time: t[i], open: q.open[i], high: q.high[i], low: q.low[i], close: q.close[i], volume: q.volume[i] || 0 });
+      }
+      return out;
+    } catch (e) { console.warn(e); }
+  }
+  throw new Error(`Failed to fetch ${symbol}`);
+}
+function setLoading(b) { document.getElementById('loading').style.display = b ? 'flex' : 'none'; }
+function setStatus(m, e=false) { const el=document.getElementById('statusBar'); el.innerText=m; el.style.color=e?'#f23645':'#fbc02d'; }
 </script>
 </body>
 </html>
