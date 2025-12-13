@@ -18,8 +18,10 @@
       --text-muted: #8d9096;
       --accent-color: #2962ff;
       
+      /* 這些顏色會由 JS 動態決定，預設為美股 (綠漲紅跌) */
       --up-color: #089981;
       --down-color: #f23645;
+      
       --warn-color: #fbc02d;
       
       --wma13-color: #00bcd4;
@@ -196,7 +198,8 @@
     .gauge-wrap { display: flex; align-items: center; gap: 16px; margin-bottom: 12px; }
     .gauge {
       width: 100px; height: 50px;
-      background: conic-gradient(from 180deg, #787b86 0deg, #f23645 50deg, #fbc02d 100deg, #089981 150deg, #2962ff 180deg);
+      /* 動態 Conic Gradient：變數化，讓紅綠可對調 */
+      background: conic-gradient(from 180deg, #787b86 0deg, var(--down-color) 50deg, #fbc02d 100deg, var(--up-color) 150deg, #2962ff 180deg);
       border-radius: 100px 100px 0 0;
       position: relative;
     }
@@ -242,11 +245,12 @@
       font-size: 11px; font-weight: 700;
       min-width: 50px; text-align: center;
     }
-    .badge-pass { background: rgba(8, 153, 129, 0.2); color: #089981; border: 1px solid #089981; }
-    .badge-fail { background: rgba(242, 54, 69, 0.2); color: #f23645; border: 1px solid #f23645; }
+    /* Badge 也使用 CSS 變數 */
+    .badge-pass { background: rgba(8, 153, 129, 0.2); color: var(--up-color); border: 1px solid var(--up-color); }
+    .badge-fail { background: rgba(242, 54, 69, 0.2); color: var(--down-color); border: 1px solid var(--down-color); }
     .badge-warn { background: rgba(251, 192, 45, 0.2); color: #fbc02d; border: 1px solid #fbc02d; }
     .badge-neutral { background: #363a45; color: #ccc; }
-
+    
     .check-detail { font-size: 11px; color: #666; margin-top: 2px; text-align: right; }
     
     .stage-desc { 
@@ -293,8 +297,9 @@
     .tt-lbl { color: #9ca3af; font-weight: normal; }
     .tt-val { font-weight: 700; text-align: right; }
     
-    .c-up { color: #f23645; } 
-    .c-down { color: #089981; }
+    /* 這裡改成 CSS 變數 */
+    .c-up { color: var(--up-color); } 
+    .c-down { color: var(--down-color); }
     .c-vol { color: #fff; }
     .c-sma { color: #2962ff; }
     .c-rs { color: #ff9800; }
@@ -484,6 +489,14 @@ const WATCHLIST_DATA = [
   { s: "^GSPC", n: "S&P 500" }
 ];
 
+// 色彩定義
+const COLORS = {
+  US: { up: '#089981', down: '#f23645' }, // 美股：綠漲 紅跌
+  TW: { up: '#f23645', down: '#089981' }  // 台股：紅漲 綠跌
+};
+
+let currentStateColors = { ...COLORS.US }; // 預設美股
+
 let state = {
   symbol: "2330.TW",
   interval: "1wk",    
@@ -502,6 +515,31 @@ document.addEventListener('DOMContentLoaded', () => {
   initCharts();
   runAnalysis();
 });
+
+// 判斷是否為台股 (優化：使用 endsWith 與 startsWith 更精準)
+function isTaiwanStock(symbol) {
+  return symbol.endsWith('.TW') || symbol.endsWith('.TWO') || symbol.startsWith('^TW');
+}
+
+// 設定主題顏色
+function applyColorTheme(symbol) {
+  const isTW = isTaiwanStock(symbol);
+  currentStateColors = isTW ? COLORS.TW : COLORS.US;
+
+  // 設定 CSS 變數
+  document.documentElement.style.setProperty('--up-color', currentStateColors.up);
+  document.documentElement.style.setProperty('--down-color', currentStateColors.down);
+
+  // 如果 Chart 已經初始化，更新 Candle 顏色
+  if (charts.series.candle) {
+    charts.series.candle.applyOptions({
+      upColor: currentStateColors.up,
+      downColor: currentStateColors.down,
+      wickUpColor: currentStateColors.up,
+      wickDownColor: currentStateColors.down
+    });
+  }
+}
 
 function initUI() {
   const wlContainer = document.getElementById('watchList');
@@ -556,7 +594,15 @@ function initCharts() {
   charts.main = LightweightCharts.createChart(document.getElementById('chart-main-div'), chartOpts);
   charts.sub = LightweightCharts.createChart(document.getElementById('chart-sub-div'), chartOpts);
 
-  charts.series.candle = charts.main.addCandlestickSeries({ upColor: '#089981', downColor: '#f23645', borderVisible: false, wickUpColor: '#089981', wickDownColor: '#f23645' });
+  // 初始顏色先用預設，之後 runAnalysis 會再設定一次
+  charts.series.candle = charts.main.addCandlestickSeries({ 
+    upColor: currentStateColors.up, 
+    downColor: currentStateColors.down, 
+    borderVisible: false, 
+    wickUpColor: currentStateColors.up, 
+    wickDownColor: currentStateColors.down 
+  });
+  
   charts.series.volume = charts.main.addHistogramSeries({ priceFormat: { type: 'volume' }, priceScaleId: '' });
   charts.series.volume.priceScale().applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } });
   charts.series.mainMA = charts.main.addLineSeries({ color: '#2962ff', lineWidth: 2 });
@@ -588,12 +634,10 @@ function initCharts() {
   new ResizeObserver(e => { if(e[0]) charts.main.applyOptions({ width: e[0].contentRect.width, height: e[0].contentRect.height }); }).observe(document.getElementById('chart-main-div'));
   new ResizeObserver(e => { if(e[0]) charts.sub.applyOptions({ width: e[0].contentRect.width, height: e[0].contentRect.height }); }).observe(document.getElementById('chart-sub-div'));
   
-  // Crosshair Sync Logic
   charts.main.subscribeCrosshairMove(param => {
     updateTooltip(param);
     if(param.time) {
        const rsVal = tooltipMap.rs.get(param.time);
-       // Sync Sub Chart Crosshair to the RS value at that time
        charts.sub.setCrosshairPosition(rsVal || NaN, param.time, charts.series.rsLine);
     }
   });
@@ -602,7 +646,6 @@ function initCharts() {
     updateTooltip(param);
     if(param.time) {
        const stockVal = tooltipMap.stock.get(param.time);
-       // Sync Main Chart Crosshair to the Close price
        charts.main.setCrosshairPosition(stockVal ? stockVal.close : NaN, param.time, charts.series.candle);
     }
   });
@@ -611,6 +654,10 @@ function initCharts() {
 async function runAnalysis() {
   const symbol = document.getElementById('symbolInput').value.trim().toUpperCase();
   state.symbol = symbol;
+  
+  // STEP 1: 設定主題顏色
+  applyColorTheme(symbol);
+
   setLoading(true); setStatus("");
 
   try {
@@ -655,7 +702,6 @@ function recalcIndicators() {
     charts.series.wmaAux[p].setData(w);
   });
 
-  // Updated: Strict Alignment RS Calc
   const rsInfo = calcRSEnhanced(stock, benchmark);
   const rsData = rsInfo.rsSeries;
   const rsMaData = rsInfo.rsMaSeries;
@@ -667,7 +713,28 @@ function recalcIndicators() {
   charts.series.rsMA.setData(rsMaData);
 
   charts.series.candle.setData(stock);
-  charts.series.volume.setData(stock.map(d => ({ time: d.time, value: d.volume, color: d.close >= d.open ? 'rgba(8,153,129,0.3)' : 'rgba(242,54,69,0.3)' })));
+  
+  // 量能顏色：使用帶透明度的當前主題色
+  // 我們需要將 Hex 轉為 RGB，這裡簡單手動轉換不太方便，但因為我們只有兩種顏色，
+  // 可以利用 currentStateColors 來判斷。
+  // 簡單解法：直接檢查 isUp，然後給對應的 rgba 字串。
+  
+  // Helper to hex -> rgba
+  const hexToRgba = (hex, alpha) => {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  };
+
+  const upRgba = hexToRgba(currentStateColors.up, 0.3);
+  const downRgba = hexToRgba(currentStateColors.down, 0.3);
+
+  charts.series.volume.setData(stock.map(d => ({ 
+    time: d.time, 
+    value: d.volume, 
+    color: d.close >= d.open ? upRgba : downRgba 
+  })));
   
   const totalBars = stock.length;
   const visibleRange = 120;
@@ -698,6 +765,8 @@ function updateTooltip(param) {
   let html = `<div class="tt-header">${dateStr}</div>`;
   
   if (stock) {
+    // 這裡使用 c-up / c-down CSS 類別，因為我們已經將 CSS 變數動態化了，
+    // 所以 .c-up 會自動呈現正確的顏色 (台股紅/美股綠)
     const valColor = stock.close >= stock.open ? 'c-up' : 'c-down';
     
     html += `
@@ -779,7 +848,6 @@ function calcSMA(data, len) {
   return res;
 }
 
-// Fixed: Strictly aligns RS data with Stock timestamps
 function calcRSEnhanced(stock, benchmark) {
   const bMap = new Map();
   benchmark.forEach(b => bMap.set(b.time, b.close));
@@ -791,27 +859,19 @@ function calcRSEnhanced(stock, benchmark) {
     const s = stock[i];
     let bClose = bMap.get(s.time);
 
-    // Forward fill
     if(bClose !== undefined) {
       lastBench = bClose;
     } else if (lastBench !== null) {
       bClose = lastBench;
     }
 
-    // Must push a value (even if NaN) for every stock bar to keep index alignment
     if(bClose && bClose > 0) {
       rsRaw.push({ time: s.time, value: s.close / bClose });
     } else {
-      rsRaw.push({ time: s.time, value: NaN }); // LineSeries handles NaN as a gap
+      rsRaw.push({ time: s.time, value: NaN });
     }
   }
 
-  // Use simple arrays for MA since gaps (NaN) might break simple loop, 
-  // but for simplicity we filter valid points for MA calc and then map back?
-  // Actually, standard SMA ignores NaNs or we can just filter.
-  // To keep alignment, we calculate SMA based on valid points only but push to correct time?
-  // Easier: Filter for MA calculation, then map back to time.
-  
   const validRS = rsRaw.filter(r => !Number.isNaN(r.value));
   const rsMa20Raw = calcSMA(validRS.map(r => ({ time: r.time, close: r.value })), 20);
   const rsMa52Raw = calcSMA(validRS.map(r => ({ time: r.time, close: r.value })), 52);
@@ -825,7 +885,6 @@ function calcRSEnhanced(stock, benchmark) {
     rsMa20Aligned.push({ time: s.time, value: val !== undefined ? val : NaN });
   });
 
-  // Score Logic
   let mansfield = 0;
   if(validRS.length > 0) {
     const lastRS = validRS[validRS.length-1];
@@ -833,7 +892,6 @@ function calcRSEnhanced(stock, benchmark) {
     if(last52MA) mansfield = ((lastRS.value / last52MA) - 1) * 10;
   }
   
-  // Normalize start at 1 for display
   const startVal = validRS[0]?.value || 1;
   const rsSeries = rsRaw.map(r => ({ time: r.time, value: r.value / startVal }));
   const rsMaSeries = rsMa20Aligned.map(r => ({ time: r.time, value: r.value / startVal }));
@@ -871,18 +929,32 @@ function updateAnalysisPanel(stock, maData, rsInfo) {
   let txt = "中性整理"; if (scoreObj.total >= 75) txt = "強勢多頭"; else if (scoreObj.total >= 50) txt = "多方嘗試"; else if (scoreObj.total <= 30) txt = "空方弱勢";
   document.getElementById('scoreText').innerText = txt;
   
-  const setMetric = (id, val, goodCond) => { const el=document.getElementById(id); el.innerText=(val>=0?"+":"")+val; el.style.color=goodCond?"var(--up-color)":(val<0?"var(--down-color)":"#888"); };
+  const setMetric = (id, val, goodCond) => { 
+    const el=document.getElementById(id); 
+    el.innerText=(val>=0?"+":"")+val; 
+    // 動態顏色：如果是 Good (正向)，使用 up-color，否則 down-color 或灰色
+    if (goodCond) el.style.color = "var(--up-color)";
+    else if (val < 0) el.style.color = "var(--down-color)";
+    else el.style.color = "#888";
+  };
+  
   setMetric('scoreTrend', scoreObj.trend, scoreObj.trend > 0);
   setMetric('scoreMom', scoreObj.momentum, scoreObj.momentum > 0);
   setMetric('scoreVol', scoreObj.volume, scoreObj.volume > 0);
   setMetric('scoreRS', scoreObj.rs, scoreObj.rs > 0);
 
-  const sBadge = document.getElementById('stageBadge'); sBadge.innerText = `Stage ${stage}`; sBadge.className = `badge ${stage === 2 ? 'badge-pass' : (stage === 4 ? 'badge-fail' : 'badge-warn')}`;
+  const sBadge = document.getElementById('stageBadge'); 
+  sBadge.innerText = `Stage ${stage}`; 
+  sBadge.className = `badge ${stage === 2 ? 'badge-pass' : (stage === 4 ? 'badge-fail' : 'badge-warn')}`;
+  
   document.getElementById('infoPrice').innerText = last.close.toFixed(2);
   document.getElementById('infoMALabel').innerText = `${state.maType}${state.maLen}`;
   document.getElementById('infoMA').innerText = curMA ? curMA.toFixed(2) : '-';
   const bias = curMA ? ((last.close / curMA) - 1) * 100 : 0;
-  const biasEl = document.getElementById('infoBias'); biasEl.innerText = bias.toFixed(2) + "%"; biasEl.style.color = bias > 0 ? "var(--up-color)" : "var(--down-color)";
+  const biasEl = document.getElementById('infoBias'); 
+  biasEl.innerText = bias.toFixed(2) + "%"; 
+  // 這裡也要動態，bias > 0 代表在均線上 (偏多/好) -> up-color
+  biasEl.style.color = bias > 0 ? "var(--up-color)" : "var(--down-color)";
   
   let desc = "資料不足，無法判讀。";
   if(stage===1) desc = "<strong>【盤整打底】</strong>股價多在區間震盪，均線走平。此階段常為主力佈局區，但方向尚未明朗，建議耐心觀察突破方向。";
@@ -902,6 +974,9 @@ function updateAnalysisPanel(stock, maData, rsInfo) {
 
   const initStop = curMA ? curMA * 0.95 : 0;
   document.getElementById('riskInitial').innerText = initStop.toFixed(2);
+  // 風險控管的 Initial 停損通常是警示，使用 down-color
+  document.getElementById('riskInitial').style.color = "var(--down-color)";
+  
   document.getElementById('riskTrailing').innerText = curMA ? curMA.toFixed(2) : "-";
   document.getElementById('riskResistance').innerText = isBlueSky ? "天空無雲 (Blue Sky)" : `上方約 ${maxHigh.toFixed(2)}`;
 }
