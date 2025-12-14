@@ -232,7 +232,27 @@
     .mm-label { color: var(--text-muted); }
     .mm-val { font-weight: bold; color: var(--text-main); }
 
-    .check-item {
+        /* 指標列表樣式 (Trend & Market / S/R 共用) */
+    .m-item { 
+      background: #0d1117; padding: 8px 10px; border-radius: 4px; 
+      display: flex; justify-content: space-between; align-items: center; 
+      font-size: 13px; border: 1px solid transparent;
+      margin-bottom: 6px;
+    }
+    .m-label { color: var(--text-muted); }
+    .m-val { font-weight: 700; color: var(--text-main); }
+
+    .tag-pill {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--border-color);
+      font-size: 12px;
+      margin: 2px 4px 2px 0;
+      color: var(--text-main);
+    }
+
+.check-item {
       display: flex; justify-content: space-between; align-items: center;
       margin-bottom: 8px; font-size: 13px;
       border-bottom: 1px dashed #2a2e39; padding-bottom: 6px;
@@ -317,7 +337,119 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-  </style>
+  
+  /* UI Variant C - Weinstein themed dashboard */
+  body {
+    background: radial-gradient(circle at top, #111827 0, #020617 55%);
+  }
+  .card {
+    background: #020617;
+    border-radius: 14px;
+    border: 1px solid rgba(75,85,99,0.6);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+  }
+  /* removed yellow diamond marker */
+  #stageBadge.badge-pass {
+    background: linear-gradient(135deg, #22c55e, #4ade80);
+    color: #022c22;
+  }
+  #stageBadge.badge-warn {
+    background: linear-gradient(135deg, #facc15, #f97316);
+    color: #451a03;
+  }
+  #stageBadge.badge-fail {
+    background: linear-gradient(135deg, #f97373, #ef4444);
+    color: #7f1d1d;
+  }
+  .m-item {
+    border-radius: 999px;
+    padding-inline: 14px;
+  }
+  .tag-pill {
+    border-radius: 999px;
+    background: rgba(15,23,42,0.92);
+    border-color: rgba(250,204,21,0.6);
+  }
+
+
+  /* === Checklist layout & status pills === */
+  .check-item-row {
+    margin-bottom: 10px;
+  }
+  .check-main-line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .check-label {
+    font-size: 13px;
+  }
+  .status-pill {
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    border: 1px solid transparent;
+  }
+  .status-pass {
+    background: rgba(34,197,94,0.12);
+    border-color: rgba(34,197,94,0.7);
+    color: #4ade80;
+  }
+  .status-warn {
+    background: rgba(234,179,8,0.12);
+    border-color: rgba(234,179,8,0.8);
+    color: #facc15;
+  }
+  .status-fail {
+    background: rgba(248,113,113,0.12);
+    border-color: rgba(248,113,113,0.85);
+    color: #f97373;
+  }
+  .check-desc {
+    margin-top: 2px;
+    font-size: 12px;
+    color: #a0aec0;
+  }
+
+  /* === Tone badges for cards === */
+  .tone-pill {
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 10px;
+    border: 1px solid transparent;
+    margin-left: auto;
+  }
+  .tone-bull {
+    background: rgba(34,197,94,0.08);
+    border-color: rgba(34,197,94,0.7);
+    color: #4ade80;
+  }
+  .tone-bear {
+    background: rgba(248,113,113,0.10);
+    border-color: rgba(248,113,113,0.8);
+    color: #f97373;
+  }
+  .tone-neutral {
+    background: rgba(148,163,184,0.08);
+    border-color: rgba(148,163,184,0.5);
+    color: #e5e7eb;
+  }
+
+  /* === Colored metric values === */
+  .tone-val-bull {
+    color: var(--up-color);
+    font-weight: 600;
+  }
+  .tone-val-bear {
+    color: var(--down-color);
+    font-weight: 600;
+  }
+  .tone-val-neutral {
+    color: #9ca3af;
+  }
+</style>
 </head>
 <body>
 
@@ -375,6 +507,14 @@
       <button data-len="20">20</button>
       <button data-len="30" class="active">30</button>
       <button data-len="60">60</button>
+    </div>
+  </div>
+
+  <div class="control-group">
+    <span class="control-label">語言</span>
+    <div class="segmented" id="langButtons">
+      <button data-lang="zh" class="active">中文</button>
+      <button data-lang="en">EN</button>
     </div>
   </div>
 
@@ -467,6 +607,62 @@
         說明：這裡僅示範一種簡化邏輯 —— 以均線與近期高低點估算合理停損、壓力帶。實務操作需搭配資金控管、個人風險承受度與盤勢判斷，不建議直接當作實際下單依據。
       </div>
     </div>
+
+    <!-- 5. 趨勢與市場位置總覽 (Trend & Market Analysis) -->
+    <div class="card">
+      <div class="card-header">
+        <span>趨勢與市場位置 (Trend &amp; Market)</span>
+        <span id="trendToneTag" class="tone-pill tone-neutral">中性</span>
+      </div>
+      <div id="analysisList">
+        <div class="m-item"><span class="m-label">位置狀態</span><span class="m-val">-</span></div>
+        <div class="m-item"><span class="m-label">乖離率</span><span class="m-val">-</span></div>
+        <div class="m-item"><span class="m-label">前高距離</span><span class="m-val">-</span></div>
+        <div class="m-item"><span class="m-label">前低距離</span><span class="m-val">-</span></div>
+        <div class="m-item"><span class="m-label">量能</span><span class="m-val">-</span></div>
+        <div class="m-item"><span class="m-label">RS</span><span class="m-val">-</span></div>
+      </div>
+    </div>
+
+    <!-- 6. PATTERN AI (簡易型態偵測) -->
+    <div class="card">
+      <div class="card-header">
+        <span>PATTERN AI</span>
+        <span id="patternToneTag" class="tone-pill tone-neutral">中性</span>
+      </div>
+      <div id="patternTags" style="display:flex; flex-wrap:wrap; min-height:30px;">
+        <span style="font-size:12px; color:#555;">尚未偵測到明顯型態</span>
+      </div>
+    </div>
+
+    <!-- 7. 支撐 / 壓力區 (S/R Levels) -->
+    <div class="card">
+      <div class="card-header">
+        <span>S/R LEVELS</span>
+        <span id="srToneTag" class="tone-pill tone-neutral">中性</span>
+      </div>
+      <div class="m-item" style="margin-bottom:6px;">
+        <span class="m-label">極值壓力 (High/Low Extremes)</span>
+        <span class="m-val" id="lvlResExt">-</span>
+      </div>
+      <div class="m-item" style="margin-bottom:6px;">
+        <span class="m-label">極值支撐 (High/Low Extremes)</span>
+        <span class="m-val" id="lvlSupExt">-</span>
+      </div>
+      <div class="m-item" style="margin-bottom:6px;">
+        <span class="m-label">VAH (Volume Profile)</span>
+        <span class="m-val" id="lvlVAH">-</span>
+      </div>
+      <div class="m-item" style="margin-bottom:6px;">
+        <span class="m-label">VAL (Volume Profile)</span>
+        <span class="m-val" id="lvlVAL">-</span>
+      </div>
+      <div class="m-item">
+        <span class="m-label">POC (Volume Profile)</span>
+        <span class="m-val" id="lvlPOC">-</span>
+      </div>
+    </div>
+
   </aside>
 </div>
 
@@ -504,8 +700,22 @@ let state = {
   maLen: 30,
   rsBenchmark: "^TWII",
   wmaAux: { 13: false, 26: false, 52: false },
+  lang: "zh",
   dataCache: { stock: [], benchmark: [], ma: [], rs: [], rsMa: [], wmaAux: {} }
 };
+
+function formatPrice(value, symbol) {
+  if (value == null || isNaN(value)) return "-";
+  const v = Number(value);
+  const isTW = symbol && (symbol.endsWith(".TW") || symbol.endsWith(".TWO"));
+  if (isTW) {
+    return v.toFixed(2);
+  }
+  if (Math.abs(v) >= 100) return v.toFixed(2);
+  if (Math.abs(v) >= 10) return v.toFixed(2);
+  if (Math.abs(v) >= 1) return v.toFixed(3);
+  return v.toFixed(4);
+}
 
 let charts = { main: null, sub: null, series: { candle: null, volume: null, mainMA: null, wmaAux: {}, rsLine: null, rsMA: null } };
 let tooltipMap = { stock: new Map(), ma: new Map(), wmaAux: { 13: new Map(), 26: new Map(), 52: new Map() }, rs: new Map(), rsMa: new Map() };
@@ -573,6 +783,20 @@ function initUI() {
       if(charts.series.wmaAux[v]) charts.series.wmaAux[v].applyOptions({ visible: active });
     };
   });
+
+  // 語言切換
+  const langButtons = document.querySelectorAll('#langButtons button');
+  langButtons.forEach(btn => {
+    btn.onclick = () => {
+      setActive(btn, '#langButtons button');
+      state.lang = btn.dataset.lang || 'zh';
+      // 重新根據目前資料刷新分析面板
+      if (state.dataCache.stock.length && state.dataCache.ma.length && state.dataCache.rs.length) {
+        updateAnalysisPanel(state.dataCache.stock, state.dataCache.ma, state.dataCache.rsInfo || { mansfield: 0 });
+      }
+    };
+  });
+
   document.getElementById('rsBenchmark').onchange = (e) => { state.rsBenchmark = e.target.value; runAnalysis(); };
   document.getElementById('searchBtn').onclick = runAnalysis;
   document.getElementById('symbolInput').onkeydown = (e) => { if(e.key === 'Enter') runAnalysis(); };
@@ -908,78 +1132,565 @@ function calcScoreDetails(r) {
   return { total: Math.max(0, Math.min(100, 40+trend+momentum+volume+rs)), trend, momentum, volume, rs };
 }
 function updateAnalysisPanel(stock, maData, rsInfo) {
-  const last = stock[stock.length-1];
-  const maMap = new Map(maData.map(m=>[m.time, m.value]));
+  if (!stock || !stock.length || !maData || !maData.length) return;
+
+  const last = stock[stock.length - 1];
+  const maMap = new Map(maData.map(m => [m.time, m.value]));
   const curMA = maMap.get(last.time);
-  const prevMA = maMap.get(stock[Math.max(0, stock.length-4)].time);
+  const prevMA = maMap.get(stock[Math.max(0, stock.length - 4)].time);
+
   const maUp = (curMA && prevMA) ? curMA > prevMA : false;
   const priceAboveMA = curMA ? last.close > curMA : false;
+
+  // 量能與 Blue Sky 判斷
   let volSum = 0, volCnt = 0;
-  for(let i=1; i<=20; i++) { const bar = stock[stock.length - 1 - i]; if(bar) { volSum += bar.volume; volCnt++; } }
+  for (let i = 1; i <= 20; i++) {
+    const bar = stock[stock.length - 1 - i];
+    if (bar) { volSum += bar.volume; volCnt++; }
+  }
   const avgVol = volCnt ? volSum / volCnt : 1;
   const isVol = (last.volume > avgVol * 1.5) && (last.close > last.open);
-  let maxHigh = 0; let lookback = Math.min(stock.length, 52);
-  for(let i=0; i<lookback; i++) maxHigh = Math.max(maxHigh, stock[stock.length - 1 - i].high);
+
+  let maxHigh = 0;
+  const lookback = Math.min(stock.length, 52);
+  for (let i = 0; i < lookback; i++) {
+    const bar = stock[stock.length - 1 - i];
+    if (!bar) continue;
+    if (bar.high > maxHigh) maxHigh = bar.high;
+  }
   const isBlueSky = last.close >= maxHigh * 0.98;
-  let stage = 1; if (priceAboveMA && maUp) stage = 2; else if (!priceAboveMA && !maUp) stage = 4; else if (!priceAboveMA && maUp) stage = 3;
-  const scoreObj = calcScoreDetails({ stage, priceAboveMA, maUp, isVol, rsStrong: rsInfo.mansfield > 0, benchmarkAvailable: state.dataCache.benchmark.length > 0 });
-  
-  document.getElementById('scoreVal').innerText = scoreObj.total;
-  document.getElementById('gaugeNeedle').style.transform = `rotate(${ (scoreObj.total / 100 * 180) - 90 }deg)`;
-  let txt = "中性整理"; if (scoreObj.total >= 75) txt = "強勢多頭"; else if (scoreObj.total >= 50) txt = "多方嘗試"; else if (scoreObj.total <= 30) txt = "空方弱勢";
-  document.getElementById('scoreText').innerText = txt;
-  
-  const setMetric = (id, val, goodCond) => { 
-    const el=document.getElementById(id); 
-    el.innerText=(val>=0?"+":"")+val; 
-    // 動態顏色：如果是 Good (正向)，使用 up-color，否則 down-color 或灰色
+
+  // Stage 判斷
+  let stage = 1;
+  if (priceAboveMA && maUp) stage = 2;
+  else if (!priceAboveMA && !maUp) stage = 4;
+  else if (!priceAboveMA && maUp) stage = 3;
+
+  const scoreObj = calcScoreDetails({
+    stage,
+    priceAboveMA,
+    maUp,
+    isVol,
+    rsStrong: rsInfo && typeof rsInfo.mansfield === 'number' ? rsInfo.mansfield > 0 : false,
+    benchmarkAvailable: (state.dataCache.benchmark || []).length > 0
+  });
+
+  // 多空戰力總分與儀表
+  const scoreValEl = document.getElementById('scoreVal');
+  const gaugeNeedle = document.getElementById('gaugeNeedle');
+  const scoreTextEl = document.getElementById('scoreText');
+
+  if (scoreValEl) scoreValEl.innerText = scoreObj.total;
+  if (gaugeNeedle) gaugeNeedle.style.transform = `rotate(${(scoreObj.total / 100 * 180) - 90}deg)`;
+
+  const lang = state.lang || 'zh';
+  let txt;
+  if (lang === 'zh') {
+    txt = "中性整理";
+    if (scoreObj.total >= 75) txt = "強勢多頭";
+    else if (scoreObj.total >= 50) txt = "多方嘗試";
+    else if (scoreObj.total <= 30) txt = "空方弱勢";
+  } else {
+    txt = "Neutral consolidation";
+    if (scoreObj.total >= 75) txt = "Strong uptrend";
+    else if (scoreObj.total >= 50) txt = "Bullish attempt";
+    else if (scoreObj.total <= 30) txt = "Weak / bearish";
+  }
+  if (scoreTextEl) scoreTextEl.innerText = txt;
+
+  // 分項分數
+  const setMetric = (id, val, goodCond) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.innerText = (val >= 0 ? "+" : "") + val;
     if (goodCond) el.style.color = "var(--up-color)";
     else if (val < 0) el.style.color = "var(--down-color)";
     else el.style.color = "#888";
   };
-  
+
   setMetric('scoreTrend', scoreObj.trend, scoreObj.trend > 0);
   setMetric('scoreMom', scoreObj.momentum, scoreObj.momentum > 0);
   setMetric('scoreVol', scoreObj.volume, scoreObj.volume > 0);
   setMetric('scoreRS', scoreObj.rs, scoreObj.rs > 0);
 
-  const sBadge = document.getElementById('stageBadge'); 
-  sBadge.innerText = `Stage ${stage}`; 
-  sBadge.className = `badge ${stage === 2 ? 'badge-pass' : (stage === 4 ? 'badge-fail' : 'badge-warn')}`;
-  
-  document.getElementById('infoPrice').innerText = last.close.toFixed(2);
-  document.getElementById('infoMALabel').innerText = `${state.maType}${state.maLen}`;
-  document.getElementById('infoMA').innerText = curMA ? curMA.toFixed(2) : '-';
+  // Stage Badge
+  const sBadge = document.getElementById('stageBadge');
+  if (sBadge) {
+    sBadge.innerText = `Stage ${stage}`;
+    sBadge.className = `badge ${stage === 2 ? 'badge-pass' : (stage === 4 ? 'badge-fail' : 'badge-warn')}`;
+  }
+
+  // 基本資訊
+  const priceEl = document.getElementById('infoPrice');
+  const maLabelEl = document.getElementById('infoMALabel');
+  const maValEl = document.getElementById('infoMA');
+  const biasEl = document.getElementById('infoBias');
+
+  if (priceEl) priceEl.innerText = formatPrice(last.close, state.symbol);
+  if (maLabelEl) maLabelEl.innerText = `${state.maType}${state.maLen}`;
+  if (maValEl) maValEl.innerText = curMA ? curMA.toFixed(2) : '-';
+
   const bias = curMA ? ((last.close / curMA) - 1) * 100 : 0;
-  const biasEl = document.getElementById('infoBias'); 
-  biasEl.innerText = bias.toFixed(2) + "%"; 
-  // 這裡也要動態，bias > 0 代表在均線上 (偏多/好) -> up-color
-  biasEl.style.color = bias > 0 ? "var(--up-color)" : "var(--down-color)";
-  
-  let desc = "資料不足，無法判讀。";
-  if(stage===1) desc = "<strong>【盤整打底】</strong>股價多在區間震盪，均線走平。此階段常為主力佈局區，但方向尚未明朗，建議耐心觀察突破方向。";
-  else if(stage===2) desc = "<strong>【多頭上升】</strong>股價突破整理區並站上均線，且均線開始走揚。這是溫斯坦理論中最理想的買進與持有階段，動能強勁。";
-  else if(stage===3) desc = "<strong>【頭部做頭】</strong>漲勢趨緩、震盪加劇，均線開始走平甚至下彎。通常是主力出貨階段，建議提高警覺，逐步減碼或拉緊停利。";
-  else if(stage===4) desc = "<strong>【空頭下跌】</strong>股價跌破長期均線且均線持續下彎。空方勢力掌控，溫斯坦建議此階段應避免持有多單，反彈皆是逃命波。";
-  document.getElementById('stageDesc').innerHTML = desc;
+  if (biasEl) {
+    biasEl.innerText = bias.toFixed(2) + "%";
+    biasEl.style.color = bias > 0 ? "var(--up-color)" : "var(--down-color)";
+  }
 
-  const mkItem = (label, status, detail) => `<div class="check-item"><span class="check-label">${label}</span><div style="text-align:right"><span class="badge ${status==='PASS'?'badge-pass':(status==='FAIL'?'badge-fail':'badge-warn')}">${status}</span><div class="check-detail">${detail}</div></div></div>`;
+  // Stage 說明 (中英)
+  let desc;
+  if (lang === 'zh') {
+    desc = "資料不足，無法判讀。";
+    if (stage === 1) desc = "<strong>【盤整打底】</strong>股價多在區間震盪，均線走平。此階段常為主力佈局區，但方向尚未明朗，建議耐心觀察突破方向。";
+    else if (stage === 2) desc = "<strong>【多頭上升】</strong>股價突破整理區並站上均線，且均線開始走揚。這是溫斯坦理論中最理想的買進與持有階段，動能強勁。";
+    else if (stage === 3) desc = "<strong>【頭部做頭】</strong>漲勢趨緩、震盪加劇，均線開始走平甚至下彎。通常是主力出貨階段，建議提高警覺，逐步減碼或拉緊停利。";
+    else if (stage === 4) desc = "<strong>【空頭下跌】</strong>股價跌破長期均線且均線持續下彎。空方勢力掌控，溫斯坦建議此階段應避免持有多單，反彈皆是逃命波。";
+  } else {
+    desc = "Not enough data to evaluate.";
+    if (stage === 1) desc = "<strong>[Stage 1 – Basing]</strong> Price is moving sideways around the long-term MA. Institutions may be accumulating, but direction is not yet clear.";
+    else if (stage === 2) desc = "<strong>[Stage 2 – Advancing]</strong> Price breaks out above the base and stays above the rising MA. This is the ideal buy-and-hold phase in Weinstein's method.";
+    else if (stage === 3) desc = "<strong>[Stage 3 – Topping]</strong> Uptrend slows, volatility increases and the MA flattens. Often distribution phase – tighten stops or take profits.";
+    else if (stage === 4) desc = "<strong>[Stage 4 – Declining]</strong> Price falls below the long-term MA and the MA turns down. Bearish phase – rallies are usually selling opportunities.";
+  }
+  const stageDescEl = document.getElementById('stageDesc');
+  if (stageDescEl) stageDescEl.innerHTML = desc;
+
+  
+  
+  // Checklist
+  const mkItem = (labelZh, labelEn, status, detailZh, detailEn) => {
+    const langNow = state.lang || 'zh';
+    const label = (langNow === 'zh') ? labelZh : labelEn;
+    const detail = (langNow === 'zh') ? detailZh : detailEn;
+    const statusClass = status.toLowerCase();
+    return `<div class="check-item-row">
+      <div class="check-main-line">
+        <span class="check-label">${label}</span>
+        <span class="check-status status-pill status-${statusClass}">${status}</span>
+      </div>
+      <div class="check-desc">${detail}</div>
+    </div>`;
+  };
+
+  const closeStr = formatPrice(last.close, state.symbol);
+  const mansStr = (rsInfo && typeof rsInfo.mansfield === 'number')
+    ? rsInfo.mansfield.toFixed(2)
+    : "-";
+
   let clHtml = "";
-  clHtml += mkItem(`均線位置 (> ${state.maLen}MA)`, priceAboveMA?'PASS':'FAIL', `Close: ${last.close}`);
-  clHtml += mkItem(`均線方向 (上揚)`, maUp?'PASS':'WARN', maUp?'趨勢向上':'走平或向下');
-  clHtml += mkItem(`成交量 (放量)`, isVol?'PASS':'WARN', isVol?'量能顯著':'量能普通');
-  clHtml += mkItem(`壓力 (Blue Sky)`, isBlueSky?'PASS':'WARN', isBlueSky?'無明顯壓力':'接近高點/有壓');
-  clHtml += mkItem(`相對強度 (RS)`, rsInfo.mansfield>0?'PASS':'FAIL', `Mansfield: ${rsInfo.mansfield.toFixed(2)}`);
-  document.getElementById('checklistItems').innerHTML = clHtml;
+  clHtml += mkItem(
+    "站上主均線（> " + state.maLen + "MA）",
+    "Price above " + state.maLen + "MA",
+    priceAboveMA ? 'PASS' : 'FAIL',
+    "股價維持在強勢區上方，趨勢良好。",
+    "Price is holding in a strong zone, trend structure is healthy."
+  );
+  clHtml += mkItem(
+    "均線方向（走揚）",
+    "MA direction (turning up)",
+    maUp ? 'PASS' : 'WARN',
+    maUp ? "多頭動能延續。" : "均線走平或轉弱，需留意趨勢變化。",
+    maUp ? "Bullish momentum intact." : "MA is flattening or turning down, watch the trend."
+  );
+  clHtml += mkItem(
+    "量能表現",
+    "Volume condition",
+    isVol ? 'PASS' : 'WARN',
+    isVol ? "有明顯放量支撐走勢。" : "量能普通，尚未看到明確放大。",
+    isVol ? "Clear volume expansion with the move." : "Normal / light volume, no strong expansion yet."
+  );
+  clHtml += mkItem(
+    "壓力位置（Blue Sky）",
+    "Resistance / Blue-sky",
+    isBlueSky ? 'PASS' : 'WARN',
+    isBlueSky ? "接近或創高，壓力相對較輕。" : "靠近前高或壓力區，需留意可能的反壓。",
+    isBlueSky ? "Near / new highs with lighter overhead supply." : "Close to prior highs / resistance, watch for rejection."
+  );
+  if (rsInfo && typeof rsInfo.mansfield === 'number') {
+    clHtml += mkItem(
+      "相對強度（RS）",
+      "Relative strength (RS)",
+      rsInfo.mansfield > 0 ? 'PASS' : 'FAIL',
+      "Mansfield：" + mansStr,
+      "Mansfield: " + mansStr
+    );
+  }
+  const checklistEl = document.getElementById('checklistItems');
+  if (checklistEl) checklistEl.innerHTML = clHtml;
 
+// 風險控管
   const initStop = curMA ? curMA * 0.95 : 0;
-  document.getElementById('riskInitial').innerText = initStop.toFixed(2);
-  // 風險控管的 Initial 停損通常是警示，使用 down-color
-  document.getElementById('riskInitial').style.color = "var(--down-color)";
+  const riskInitialEl = document.getElementById('riskInitial');
+  const riskTrailingEl = document.getElementById('riskTrailing');
+  const riskResEl = document.getElementById('riskResistance');
+
+  if (riskInitialEl) {
+    riskInitialEl.innerText = formatPrice(initStop, state.symbol);
+    riskInitialEl.style.color = "var(--down-color)";
+  }
+  if (riskTrailingEl) riskTrailingEl.innerText = curMA ? curMA.toFixed(2) : "-";
+  if (riskResEl) riskResEl.innerText = isBlueSky ? "天空無雲 (Blue Sky)" : `上方約 ${formatPrice(maxHigh, state.symbol)}`;
+
+  // --- 趨勢與市場位置卡片 ---
+  const listEl = document.getElementById('analysisList');
+  if (listEl) {
+    const vals = listEl.querySelectorAll('.m-item .m-val');
+
+    const posTextZh = stage === 2 ? "多頭上升區" : (stage === 4 ? "空頭壓力區" : "整理/觀察區");
+    const posTextEn = stage === 2 ? "Uptrend zone" : (stage === 4 ? "Downtrend / selling zone" : "Sideways / watch zone");
+    const posText = (lang === 'zh') ? posTextZh : posTextEn;
+
+    const volTextZh = isVol ? "放量上攻" : (last.volume < avgVol * 0.7 ? "量能偏弱" : "量能普通");
+    const volTextEn = isVol ? "Strong volume breakout" : (last.volume < avgVol * 0.7 ? "Weak volume" : "Normal volume");
+    const volText = (lang === 'zh') ? volTextZh : volTextEn;
+
+    let hi = 0, lo = Number.POSITIVE_INFINITY;
+    const lb = Math.min(stock.length, 52);
+    for (let i = 0; i < lb; i++) {
+      const bar = stock[stock.length - 1 - i];
+      if (!bar) continue;
+      if (bar.high > hi) hi = bar.high;
+      if (bar.low < lo) lo = bar.low;
+    }
+    const distHigh = hi ? ((hi - last.close) / last.close) * 100 : NaN;
+    const distLow = lo < 1e20 ? ((last.close - lo) / last.close) * 100 : NaN;
+
+    let rsTextZh = "資料不足";
+    let rsTextEn = "Not enough data";
+    if (rsInfo && typeof rsInfo.mansfield === 'number') {
+      if (rsInfo.mansfield > 0) {
+        rsTextZh = `強於大盤 (M=${rsInfo.mansfield.toFixed(2)})`;
+        rsTextEn = `Stronger than benchmark (M=${rsInfo.mansfield.toFixed(2)})`;
+      } else {
+        rsTextZh = `弱於大盤 (M=${rsInfo.mansfield.toFixed(2)})`;
+        rsTextEn = `Weaker than benchmark (M=${rsInfo.mansfield.toFixed(2)})`;
+      }
+    }
+    const rsText = (lang === 'zh') ? rsTextZh : rsTextEn;
+
+    if (vals[0]) vals[0].innerText = posText;
+    if (vals[1]) vals[1].innerText = bias.toFixed(2) + "%";
+    if (vals[2]) vals[2].innerText = !Number.isNaN(distHigh) ? distHigh.toFixed(2) + "%" : "-";
+    if (vals[3]) vals[3].innerText = !Number.isNaN(distLow) ? distLow.toFixed(2) + "%" : "-";
+    if (vals[4]) vals[4].innerText = volText;
+    if (vals[5]) vals[5].innerText = rsText;
   
-  document.getElementById('riskTrailing').innerText = curMA ? curMA.toFixed(2) : "-";
-  document.getElementById('riskResistance').innerText = isBlueSky ? "天空無雲 (Blue Sky)" : `上方約 ${maxHigh.toFixed(2)}`;
+    // Trend & Market tone badges and colored values
+    const trendToneTag = document.getElementById('trendToneTag');
+    let trendTone = 'neutral';
+    if (stage === 2 && priceAboveMA && maUp) trendTone = 'bull';
+    else if (stage === 4 || (!priceAboveMA && !maUp)) trendTone = 'bear';
+
+    if (trendToneTag) {
+      trendToneTag.className = 'tone-pill tone-' + trendTone;
+      if (lang === 'zh') {
+        trendToneTag.textContent = trendTone === 'bull' ? '偏多' : (trendTone === 'bear' ? '偏空' : '中性');
+      } else {
+        trendToneTag.textContent = trendTone === 'bull' ? 'Bullish' : (trendTone === 'bear' ? 'Bearish' : 'Neutral');
+      }
+    }
+
+    const clearToneVal = (el) => {
+      if (!el) return;
+      el.classList.remove('tone-val-bull','tone-val-bear','tone-val-neutral');
+    };
+    vals.forEach(clearToneVal);
+
+    if (vals[0]) {
+      vals[0].classList.add(trendTone === 'bull' ? 'tone-val-bull' : trendTone === 'bear' ? 'tone-val-bear' : 'tone-val-neutral');
+    }
+    if (vals[4]) {
+      const volTone = isVol ? 'bull' : (last.volume < avgVol * 0.7 ? 'bear' : 'neutral');
+      vals[4].classList.add(volTone === 'bull' ? 'tone-val-bull' : volTone === 'bear' ? 'tone-val-bear' : 'tone-val-neutral');
+    }
+    if (vals[5]) {
+      const rsTone = (rsInfo && typeof rsInfo.mansfield === 'number' && rsInfo.mansfield > 0) ? 'bull' : 'bear';
+      vals[5].classList.add(rsTone === 'bull' ? 'tone-val-bull' : 'tone-val-bear');
+    }
 }
+
+  // --- PATTERN AI v2 ---
+  const patternEl = document.getElementById('patternTags');
+  if (patternEl) {
+    const tags = [];
+
+    const n = stock.length;
+    const prev = stock[n - 2];
+    const prev2 = stock[n - 3];
+
+    // 趨勢類 (Trend)
+    const trendUp = stage === 2 && priceAboveMA && maUp;
+    const trendDown = stage === 4;
+    const isSideways = stage === 1 && !isVol;
+
+    if (trendUp) {
+      tags.push(lang === 'zh' ? "趨勢：多頭趨勢 (Uptrend)" : "Trend: Uptrend");
+    }
+    if (trendDown) {
+      tags.push(lang === 'zh' ? "趨勢：空頭趨勢 (Downtrend)" : "Trend: Downtrend");
+    }
+    if (isSideways) {
+      tags.push(lang === 'zh' ? "趨勢：區間盤整" : "Trend: Sideways range");
+    }
+
+    // K 線型態 (Price Action)
+    if (prev) {
+      // Inside Bar
+      if (last.high < prev.high && last.low > prev.low) {
+        tags.push(lang === 'zh' ? "K線：Inside Bar" : "Price Action: Inside Bar");
+      }
+      // Outside Bar
+      if (last.high > prev.high && last.low < prev.low) {
+        tags.push(lang === 'zh' ? "K線：Outside Bar" : "Price Action: Outside Bar");
+      }
+      const body = Math.abs(last.close - last.open);
+      const range = last.high - last.low;
+      const upperWick = last.high - Math.max(last.close, last.open);
+      const lowerWick = Math.min(last.close, last.open) - last.low;
+
+      // Doji
+      if (range > 0 && body / range < 0.1) {
+        tags.push(lang === 'zh' ? "K線：十字線 (Doji)" : "Price Action: Doji");
+      }
+
+      // Pin Bar / Hammer / Shooting Star
+      if (range > 0 && body / range < 0.3) {
+        if (lowerWick > body * 2 && upperWick < body) {
+          tags.push(lang === 'zh' ? "K線：Hammer / 下影線反轉" : "Price Action: Hammer / Long lower wick");
+        } else if (upperWick > body * 2 && lowerWick < body) {
+          tags.push(lang === 'zh' ? "K線：Shooting Star / 上影線反轉" : "Price Action: Shooting Star");
+        }
+      }
+
+      // Engulfing
+      if (prev2) {
+        const prevBody = Math.abs(prev.close - prev.open);
+        if (body > prevBody) {
+          if (last.close > last.open && prev.close < prev.open &&
+              last.close >= prev.open && last.open <= prev.close) {
+            tags.push(lang === 'zh' ? "K線：看多吞噬 (Bullish Engulfing)" : "Price Action: Bullish Engulfing");
+          }
+          if (last.close < last.open && prev.close > prev.open &&
+              last.close <= prev.open && last.open >= prev.close) {
+            tags.push(lang === 'zh' ? "K線：看空吞噬 (Bearish Engulfing)" : "Price Action: Bearish Engulfing");
+          }
+        }
+      }
+    }
+
+    // 結構型態 (Structure)
+    let recentHigh = 0, recentLow = Number.POSITIVE_INFINITY;
+    const lbStruct = Math.min(stock.length, 40);
+    for (let i = 0; i < lbStruct; i++) {
+      const bar = stock[n - 1 - i];
+      if (!bar) continue;
+      if (bar.high > recentHigh) recentHigh = bar.high;
+      if (bar.low < recentLow) recentLow = bar.low;
+    }
+    const breakoutUp = last.close > recentHigh * 1.01;
+    const breakoutDown = last.close < recentLow * 0.99;
+
+    if (breakoutUp) {
+      tags.push(lang === 'zh' ? "結構：向上突破 (Breakout)" : "Structure: Bullish breakout");
+    }
+    if (breakoutDown) {
+      tags.push(lang === 'zh' ? "結構：向下跌破" : "Structure: Bearish breakdown");
+    }
+
+    // 簡易回測 / Pullback
+    if (trendUp && prev && prev2) {
+      const pulledToMA = curMA && last.low <= curMA * 1.01 && last.low >= curMA * 0.98;
+      if (pulledToMA) {
+        tags.push(lang === 'zh' ? "結構：多頭回測均線 (Pullback to MA)" : "Structure: Pullback to MA");
+      }
+    }
+
+    // 動能 / 量價訊號 (Momentum & Volume)
+    const volSpike = last.volume > avgVol * 2;
+    if (volSpike) {
+      tags.push(lang === 'zh' ? "量價：爆量 (Volume Spike)" : "Volume: Spike");
+    }
+
+    if (prev) {
+      const priceUp = last.close > prev.close;
+      const volDown = last.volume < avgVol;
+      if (priceUp && volDown) {
+        tags.push(lang === 'zh' ? "量價：價漲量縮 (Divergence)" : "Volume: Up on weak volume");
+      }
+    }
+
+    
+    // Pattern AI tone badge
+    let bullCount = 0, bearCount = 0;
+    for (const t of tags) {
+      const s = String(t).toLowerCase();
+      if (s.includes('多頭') || s.includes('uptrend') || s.includes('bullish') || s.includes('向上突破')) bullCount++;
+      if (s.includes('空頭') || s.includes('bearish') || s.includes('跌破') || s.includes('shooting star')) bearCount++;
+    }
+    let patternTone = 'neutral';
+    if (bullCount > bearCount && bullCount > 0) patternTone = 'bull';
+    else if (bearCount > bullCount && bearCount > 0) patternTone = 'bear';
+
+    const patternToneEl = document.getElementById('patternToneTag');
+    if (patternToneEl) {
+      patternToneEl.className = 'tone-pill tone-' + patternTone;
+      if (lang === 'zh') {
+        patternToneEl.textContent = patternTone === 'bull' ? '偏多' : (patternTone === 'bear' ? '偏空' : '中性');
+      } else {
+        patternToneEl.textContent = patternTone === 'bull' ? 'Bullish' : (patternTone === 'bear' ? 'Bearish' : 'Neutral');
+      }
+    }
+if (!tags.length) {
+      patternEl.innerHTML = `<span style="font-size:12px; color:#555;">${lang === 'zh' ? "尚未偵測到明顯型態" : "No clear patterns detected"}</span>`;
+    } else {
+      patternEl.innerHTML = tags.map(t => `<span class="tag-pill">${t}</span>`).join(" ");
+    }
+  }
+
+  // --- S/R Levels：極值 + Volume Profile ---
+  const supExtEl = document.getElementById('lvlSupExt');
+  const resExtEl = document.getElementById('lvlResExt');
+  const vahEl = document.getElementById('lvlVAH');
+  const valEl = document.getElementById('lvlVAL');
+  const pocEl = document.getElementById('lvlPOC');
+
+  if (supExtEl && resExtEl && vahEl && valEl && pocEl) {
+    const candles = stock;
+    const close = last.close;
+
+    // 計算極值支撐/壓力
+    let hi = -1e20;
+    let lo = 1e20;
+    const len = Math.min(80, candles.length);
+    for (let i = candles.length - len; i < candles.length; i++) {
+      const c = candles[i];
+      if (!c) continue;
+      if (c.high > hi) hi = c.high;
+      if (c.low < lo) lo = c.low;
+    }
+    if (hi < -1e10) hi = null;
+    if (lo > 1e10) lo = null;
+
+    // Volume Profile 核心
+    let vahPrice = null;
+    let valPrice = null;
+    let pocPrice = null;
+    if (len > 10) {
+      const slice = candles.slice(candles.length - len);
+      const highs = slice.map(c => c.high);
+      const lows = slice.map(c => c.low);
+      const globalHigh = Math.max(...highs);
+      const globalLow = Math.min(...lows);
+      const bins = 24;
+      const step = (globalHigh - globalLow) / bins || 1;
+      const volHist = new Array(bins).fill(0);
+      for (const c of slice) {
+        const mid = (c.high + c.low) / 2;
+        let idx = Math.floor((mid - globalLow) / step);
+        if (idx < 0) idx = 0;
+        if (idx >= bins) idx = bins - 1;
+        volHist[idx] += c.volume || 0;
+      }
+      let maxVol = -1;
+      let pocIdx = 0;
+      for (let i = 0; i < bins; i++) {
+        if (volHist[i] > maxVol) {
+          maxVol = volHist[i];
+          pocIdx = i;
+        }
+      }
+      pocPrice = globalLow + (pocIdx + 0.5) * step;
+
+      const sorted = [...volHist].sort((a, b) => b - a);
+      const cutoff = sorted[Math.min(4, sorted.length - 1)];
+      let minIdx = bins - 1;
+      let maxIdx = 0;
+      for (let i = 0; i < bins; i++) {
+        if (volHist[i] >= cutoff) {
+          if (i < minIdx) minIdx = i;
+          if (i > maxIdx) maxIdx = i;
+        }
+      }
+      vahPrice = globalLow + (maxIdx + 0.5) * step;
+      valPrice = globalLow + (minIdx + 0.5) * step;
+    }
+
+    // 套用價格格式
+    resExtEl.innerText = hi ? formatPrice(hi, state.symbol) : "-";
+    supExtEl.innerText = lo < 1e20 ? formatPrice(lo, state.symbol) : "-";
+    vahEl.innerText = vahPrice ? formatPrice(vahPrice, state.symbol) : "-";
+    valEl.innerText = valPrice ? formatPrice(valPrice, state.symbol) : "-";
+    pocEl.innerText = pocPrice ? formatPrice(pocPrice, state.symbol) : "-";
+
+// --- S/R Tone AI ---
+    const srToneTag = document.getElementById('srToneTag');
+
+    // 計算與壓力/支撐的距離（百分比）
+    let distHigh = null;
+    let distLow = null;
+    if (hi && hi > 0) {
+      distHigh = Math.abs((hi - close) / close) * 100;
+    }
+    if (lo && lo > 0) {
+      distLow = Math.abs((close - lo) / close) * 100;
+    }
+
+    // 清除舊的色彩
+    const resetToneVal = (el) => {
+      if (!el) return;
+      el.classList.remove('tone-val-bull','tone-val-bear','tone-val-neutral');
+    };
+    resetToneVal(supExtEl);
+    resetToneVal(resExtEl);
+    resetToneVal(vahEl);
+    resetToneVal(valEl);
+    resetToneVal(pocEl);
+
+    // 基本色彩：支撐綠、壓力紅、POC 灰
+    if (supExtEl) supExtEl.classList.add('tone-val-bull');
+    if (valEl) valEl.classList.add('tone-val-bull');
+    if (resExtEl) resExtEl.classList.add('tone-val-bear');
+    if (vahEl) vahEl.classList.add('tone-val-bear');
+    if (pocEl) pocEl.classList.add('tone-val-neutral');
+
+    // Tone 合成：偏多 / 中性 / 偏空
+    let srTone = 'neutral';
+
+    if (isBlueSky) {
+      srTone = 'bull';
+    } else if (typeof stage === 'number' && (stage === 4 || stage === 3)) {
+      // Stage 3 / 4 優先偏空
+      if (distHigh !== null && distHigh < 8) {
+        srTone = 'bear';
+      } else {
+        srTone = 'bear';
+      }
+    } else if (distHigh !== null && distHigh < 3) {
+      srTone = 'bear';
+    } else if (distLow !== null && distLow < 3) {
+      srTone = 'bull';
+    } else if (typeof stage === 'number' && stage === 2 && maUp) {
+      srTone = 'bull';
+    } else {
+      srTone = 'neutral';
+    }
+
+    if (srToneTag) {
+      srToneTag.className = 'tone-pill tone-' + srTone;
+      const langNow = state.lang || 'zh';
+      if (langNow === 'zh') {
+        srToneTag.textContent = srTone === 'bull' ? '偏多' : (srTone === 'bear' ? '偏空' : '中性');
+      } else {
+        srToneTag.textContent = srTone === 'bull' ? 'Bullish' : (srTone === 'bear' ? 'Bearish' : 'Neutral');
+      }
+    }
+  }
+
+
+  // 把 rsInfo 暫存到 state，方便語言切換時重繪
+  state.dataCache.rsInfo = rsInfo;
+}
+
+
 
 async function fetchYahoo(symbol, interval, range) {
   for (let proxy of PROXY_LIST) {
